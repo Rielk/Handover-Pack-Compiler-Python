@@ -6,6 +6,6 @@ Main file for the handover pack compilation assiter
 
 @author: William
 """
-from paths import  get_paths
+from handover_pack import Handover_Pack
 
-paths = get_paths()
+hp = Handover_Pack()
