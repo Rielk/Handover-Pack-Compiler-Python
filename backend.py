@@ -7,6 +7,7 @@ Backend functions for the Handover Pack class and compilation assiter
 @author: William
 """
 from pathlib import Path
+import pdfplumber
 import shutil
 
 def request_comm_site_path(comm_path=None):
@@ -88,6 +89,12 @@ def dump_dict(path, dic):
                 file.write("\n")
             file.write(str(index)+":"+str(dic[index])+"\n")
             first = str(index)[0]
+
+def pdf_to_str(path):
+    with pdfplumber.open(path) as pdf:
+        page_list = pdf.pages
+        text = [page.extract_text(x_tolerance=3, y_tolerance=3) for page in page_list]
+    return text
 
 def copy_file(from_path, to_path, overwrite=False):
     if not to_path.exists() or overwrite:

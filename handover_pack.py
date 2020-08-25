@@ -8,7 +8,7 @@ The Handover Pack class for the compilation assiter
 """
 import backend
 import traceback
-import json
+import re
 from datetime import datetime
 
 class Handover_Pack():
@@ -97,13 +97,9 @@ class Handover_Pack():
         backend.dump_dict(self.paths["Pack"].joinpath("Checklist, {}.txt".format(dt.strftime("%d %b %y, %H-%M-%S"))), self.checklist)
     
     def run(self):
-        self.section_1()
-        self.section_2()
-        self.section_3()
-        self.section_4()
-        self.section_5()
-        self.section_6()
-        self.section_7()
+        for x in range(1, 8):
+            if not self.checklist[x]:
+                exec("self.section_{}()".format(x))
         self.end_of_run_dump()
     
     def section_1(self):
@@ -117,7 +113,12 @@ class Handover_Pack():
         self.section_status()
     
     def section_2(self):
-        pass
+        path = self.paths["Customer"].joinpath("1. Quotes info & PV Sol")
+        pdfs = [x for x in path.iterdir() if ".pdf" in x.parts[-1]]
+        pdfs = [x for x in pdfs if re.search("quote",str(x.parts[-1]),re.IGNORECASE) or re.search("quotation",str(x.parts[-1]),re.IGNORECASE)]
+        pdfs = [x for x in pdfs if not re.search("cover",str(x.parts[-1]),re.IGNORECASE)]
+        text = backend.pdf_to_str(pdfs[0])
+        print(text)
     
     def section_3(self):
         pass
