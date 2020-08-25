@@ -9,3 +9,4 @@ Main file for the handover pack compilation assiter
 from handover_pack import Handover_Pack
 
 hp = Handover_Pack()
+hp.run()

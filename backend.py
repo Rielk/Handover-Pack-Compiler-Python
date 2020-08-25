@@ -7,6 +7,7 @@ Backend functions for the Handover Pack class and compilation assiter
 @author: William
 """
 from pathlib import Path
+import shutil
 
 def request_comm_site_path(comm_path=None):
     """"
@@ -78,3 +79,19 @@ def get_paths(cust_num):
                 "Pack":pack_path}
     else:
         return None
+
+def dump_dict(path, dic):
+    with open(path, "w") as file:
+        first = None
+        for index in dic:
+            if not first==str(index)[0] and first!=None:
+                file.write("\n")
+            file.write(str(index)+":"+str(dic[index])+"\n")
+            first = str(index)[0]
+
+def copy_file(from_path, to_path, overwrite=False):
+    if not to_path.exists() or overwrite:
+        shutil.copyfile(str(from_path), str(to_path))
+        return True
+    else: return False
+    
