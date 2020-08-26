@@ -9,13 +9,14 @@ The Handover Pack class for the compilation assiter
 import backend
 import traceback
 import re
+import ui
 from datetime import datetime
 
 class Handover_Pack():
     def __init__(self):
         #Identify Customer number for the pack
         while True:
-            self.cust_num = input("Customer Number: ")
+            self.cust_num = input("Customer Number: ").strip(" ")
             if len(self.cust_num) < 4:
                 print("The Customer number starts with a 4 digits integer. {} is invalid".format(self.cust_num))
                 continue
@@ -26,6 +27,7 @@ class Handover_Pack():
                 continue
             self.paths = backend.get_paths(self.cust_num)
             if self.paths != None:
+                print()
                 break
         self.__init_file_structure__()
         
@@ -117,8 +119,16 @@ class Handover_Pack():
         pdfs = [x for x in path.iterdir() if ".pdf" in x.parts[-1]]
         pdfs = [x for x in pdfs if re.search("quote",str(x.parts[-1]),re.IGNORECASE) or re.search("quotation",str(x.parts[-1]),re.IGNORECASE)]
         pdfs = [x for x in pdfs if not re.search("cover",str(x.parts[-1]),re.IGNORECASE)]
-        text = backend.pdf_to_str(pdfs[0])
-        print(text)
+        print("Which file looks like the Quotation?")
+        self.quotation_pdf = ui.choose_from_file(pdfs)
+        text = backend.pdf_to_str(self.quotation_pdf)
+        cust_num = ui.check_conflicting_data(self.cust_num, backend.find_in_str("Quotation Reference", text[0], "\n").strip(" "), "Customer Number")
+        if cust_num == None:
+            print("Confusion on Quotation file, Aborting Section 2\n")
+            return None
+        else:
+            self.cust_num = cust_num
+        
     
     def section_3(self):
         pass

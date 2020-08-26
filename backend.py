@@ -9,6 +9,7 @@ Backend functions for the Handover Pack class and compilation assiter
 from pathlib import Path
 import pdfplumber
 import shutil
+import re
 
 def request_comm_site_path(comm_path=None):
     """"
@@ -95,6 +96,18 @@ def pdf_to_str(path):
         page_list = pdf.pages
         text = [page.extract_text(x_tolerance=3, y_tolerance=3) for page in page_list]
     return text
+
+def find_in_str(find, string, n):
+    search = re.search(find, string, re.IGNORECASE)
+    if search and type(n)==int:
+        ret = string[search.end():search.end()+n]
+    elif search and type(n)==str:
+        ret = string[search.end():search.end()+re.search(n, string[search.end():], re.IGNORECASE).end()-len(n)]
+    elif search:
+        raise TypeError("n must be an integer number of digits or a string to search up to")
+    else:
+        ret = None
+    return ret
 
 def copy_file(from_path, to_path, overwrite=False):
     if not to_path.exists() or overwrite:
