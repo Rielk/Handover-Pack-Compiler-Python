@@ -7,7 +7,8 @@ Deals with user interface for the compilation assiter
 @author: William
 """
 import os
-def choose_from_file(pdfs):
+def choose_from_file(pdfs, find):
+    print("Which file looks like the {}?".format(find))
     lst = [None]
     lst.extend(pdfs)
     while True:

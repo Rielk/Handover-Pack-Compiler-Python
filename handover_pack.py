@@ -8,8 +8,8 @@ The Handover Pack class for the compilation assiter
 """
 import backend
 import traceback
-import re
-import ui
+import find
+import json
 from datetime import datetime
 
 class Handover_Pack():
@@ -30,43 +30,54 @@ class Handover_Pack():
                 print()
                 break
         self.__init_file_structure__()
+        self.__init_values__()
         
         #Establish Completed sections dictionary
         self.check_existing()
         self.section_status()
         self.errors = {}
         
+    def __init_values__(self):
+        if self.paths["Pack"].joinpath("Pack Values.txt").exists():
+            with open(self.paths["Pack"].joinpath("Pack Values.txt"), "r") as file:
+                path_dict = json.load(file)
+            self.values = path_dict
+        else:
+            self.values = {"Business Name":None,
+                           "Address":None,
+                           "System Size":None,
+                           "Predicted Output":None}
+        
     def __init_file_structure__(self):
-        self.paths[1] = self.paths["Pack"].joinpath("1.0  Important Technical Information")
-        self.paths[1.1] = self.paths[1].joinpath("1.1  Health & Safety Guidelines.pdf")
-        self.paths[2] = self.paths["Pack"].joinpath("2.0  General Information")
-        self.paths[2.1] = self.paths[2].joinpath("2.1  System Summary & General Information.pdf")
-        self.paths[3] = self.paths["Pack"].joinpath("3.0  Guarantees & Datasheets")
-        self.paths[3.1] = self.paths[3].joinpath("3.1  Mypower Installation Warranty.pdf")
-        self.paths[3.2] = self.paths[3].joinpath("3.2  Module Warranty.pdf")
-        self.paths[3.3] = self.paths[3].joinpath("3.3  Module Datasheet.pdf")
-        self.paths[3.4] = self.paths[3].joinpath("3.4  Inverter datasheet.pdf")
-        self.paths[3.41] = self.paths[3].joinpath("3.4a  Inverter Extended Warranty.pdf")
-        self.paths[3.5] = self.paths[3].joinpath("3.5  SolarEdge product warranty.pdf")
-        self.paths[3.6] = self.paths[3].joinpath("3.6  SolarEdge Optimiser datasheet.pdf")
-        self.paths[4] = self.paths["Pack"].joinpath("4.0  Electrical")
-        self.paths[4.1] = self.paths[4].joinpath("4.1  Installation schematic.pdf")
-        self.paths[4.2] = self.paths[4].joinpath("4.2  Commissioning test report (AC Cert).pdf")
-        self.paths[4.3] = self.paths[4].joinpath("4.3  Commissioning test report (DC Cert).pdf")
-        self.paths[4.4] = self.paths[4].joinpath("4.4  DNO commissioning form (G99 Form A3-1).pdf")
-        self.paths[4.5] = self.paths[4].joinpath("4.5  Inverter & wiring sign off.pdf")
-        self.paths[4.6] = self.paths[4].joinpath("4.6  DNO commissioning notification.pdf")
-        self.paths[4.7] = self.paths[4].joinpath("4.7  DNO acceptance.pdf")
-        self.paths[5] = self.paths["Pack"].joinpath("5.0  Predicted Output")
-        self.paths[5.1] = self.paths[5].joinpath("5.1  Summary Report.pdf")
-        self.paths[5.2] = self.paths[5].joinpath("5.2  Predicted Output Comparison Tool.pdf")
-        self.paths[6] = self.paths["Pack"].joinpath("6.0  MCS Certificate (if applicable)")
-        self.paths[6.1] = self.paths[6].joinpath("6.1  MCS certificate.pdf")
-        self.paths[7] = self.paths["Pack"].joinpath("7.0  Building Regulations - Work Notification")
-        self.paths[7.1] = self.paths[7].joinpath("7.1  NAPIT Work notification details.pdf")
-        self.paths[7.2] = self.paths[7].joinpath("7.2  Structural survey certificate.pdf")
-        for i in range(1,8):
-            self.paths[i].mkdir(exist_ok=True)
+        self.structure = {1:[1.1],
+                          2:[2.1],
+                          3:[3.1, 3.2, 3.3, 3.4, 3.41, 3.5, 3.6],
+                          4:[4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7],
+                          5:[5.1, 5.2],
+                          6:[6.1],
+                          7:[7.1, 7.2]}
+        with open(self.paths["Data"].joinpath("Folder Structure.txt"), "r") as file:
+            temp_dict = json.load(file)
+        for i in self.structure:
+            key = str(i)
+            try:
+                self.paths[key]
+            except:
+                self.paths[key] = self.paths["Pack"].joinpath(temp_dict[key])
+            self.paths[key].mkdir(exist_ok=True)
+            for j in self.structure[i]:
+                key2 = str(j)
+                try:
+                    self.paths[key2]
+                except:
+                    self.paths[key2] = self.paths[key].joinpath(temp_dict[key2])
+                self.paths[key].mkdir(exist_ok=True)
+        self.paths["Checklists"] = self.paths["Pack"].joinpath("Checklists")
+        self.paths["RunErrors"] = self.paths["Pack"].joinpath("RunErrors")
+        self.paths["Archive"] = self.paths["Pack"].joinpath("Archive")
+        self.paths["Checklists"].mkdir(exist_ok=True)
+        self.paths["RunErrors"].mkdir(exist_ok=True)
+        self.paths["Archive"].mkdir(exist_ok=True)
      
     def check_existing(self):
         self.checklist = {1:False, 2:False, 3:False, 4:False, 5:False, 6:False, 7:False,
@@ -74,20 +85,13 @@ class Handover_Pack():
                           3.5:False, 3.6:False, 4.1:False, 4.2:False, 4.3:False, 4.4:False, 4.5:False,
                           4.6:False, 4.7:False, 5.1:False, 5.2:False, 6.1:False, 7.1:False, 7.2:False}
         for index in self.checklist:
-            self.checklist[index] = self.paths[index].exists()
+            self.checklist[index] = self.paths[str(index)].exists()
         self.section_status()
      
     def section_status(self):
-        itter = {1:[1.1],
-                 2:[2.1],
-                 3:[3.1, 3.2, 3.3, 3.4, 3.41, 3.5, 3.6],
-                 4:[4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7],
-                 5:[5.1, 5.2],
-                 6:[6.1],
-                 7:[7.1, 7.2]}
-        for section in itter:
+        for section in self.structure:
             done = True
-            for subsection in itter[section]:
+            for subsection in self.structure[section]:
                 if not self.checklist[subsection]:
                     done = False
             self.checklist[section] = done
@@ -95,8 +99,19 @@ class Handover_Pack():
     def end_of_run_dump(self):
         dt = datetime.now()
         if self.errors:
-            backend.dump_dict(self.paths["Pack"].joinpath("RunErrors, {}.txt".format(dt.strftime("%d %b %y, %H-%M-%S"))), self.errors)
-        backend.dump_dict(self.paths["Pack"].joinpath("Checklist, {}.txt".format(dt.strftime("%d %b %y, %H-%M-%S"))), self.checklist)
+            backend.dump_dict(self.paths["RunErrors"].joinpath("RunErrors, {}.txt".format(dt.strftime("%d %b %y, %H-%M-%S"))), self.errors)
+        backend.dump_dict(self.paths["Checklists"].joinpath("Checklist, {}.txt".format(dt.strftime("%d %b %y, %H-%M-%S"))), self.checklist)
+        path_dict = {}
+        for key in self.paths:
+            if self.paths[key] == None or self.paths[key] == False:
+                val = None
+            else:
+                val = str(self.paths[key])
+            path_dict[key] = val
+        with open(self.paths["Pack"].joinpath("File Paths.txt"), "w") as file:
+            json.dump(path_dict, file, indent=3, separators=(',\n', ': '), sort_keys=True)
+        with open(self.paths["Pack"].joinpath("Pack Values.txt"), "w") as file:
+            json.dump(self.values, file, indent=3, sort_keys=True)
     
     def run(self):
         for x in range(1, 8):
@@ -106,28 +121,49 @@ class Handover_Pack():
     
     def section_1(self):
         try:
-            backend.copy_file(self.paths["Data"].joinpath("Health & Safety Guidelines.pdf"), self.paths[1.1], overwrite=True)
-            self.checklist[1.1] = True
-        except FileNotFoundError:
-            print("Couldn't find 'Health & Safety Guidelines.pdf' in the Data path.")
+            if not self.checklist[1.1]:
+                try:
+                    backend.copy_file(self.paths["Data"].joinpath("Health & Safety Guidelines.pdf"), self.paths["1.1"], overwrite=True)
+                    self.checklist[1.1] = True
+                except FileNotFoundError:
+                    print("Couldn't find 'Health & Safety Guidelines.pdf' in the Data path.\n")
         except:
+            print("Error caught in completion of section 1.1. See RunErrors for details.\n")
             self.errors[1.1] = traceback.format_exc()
         self.section_status()
     
     def section_2(self):
-        path = self.paths["Customer"].joinpath("1. Quotes info & PV Sol")
-        pdfs = [x for x in path.iterdir() if ".pdf" in x.parts[-1]]
-        pdfs = [x for x in pdfs if re.search("quote",str(x.parts[-1]),re.IGNORECASE) or re.search("quotation",str(x.parts[-1]),re.IGNORECASE)]
-        pdfs = [x for x in pdfs if not re.search("cover",str(x.parts[-1]),re.IGNORECASE)]
-        print("Which file looks like the Quotation?")
-        self.quotation_pdf = ui.choose_from_file(pdfs)
-        text = backend.pdf_to_str(self.quotation_pdf)
-        cust_num = ui.check_conflicting_data(self.cust_num, backend.find_in_str("Quotation Reference", text[0], "\n").strip(" "), "Customer Number")
-        if cust_num == None:
-            print("Confusion on Quotation file, Aborting Section 2\n")
-            return None
-        else:
-            self.cust_num = cust_num
+        try:
+            self.paths, self.cust_num, quote_pdf = find.Quotation(self.paths, self.cust_num)
+            if not quote_pdf:
+                print("Missing the Quotation pdf, cannot complete section 2.")
+                return None
+            self.paths, self.cust_num, schem_pdf = find.Final_Schematic(self.paths, self.cust_num)
+            if not quote_pdf:
+                print("Missing the Final Schematic pdf, cannot complete section 2.")
+                return None
+            if not self.checklist[2.1]:
+                quote_text = backend.pdf_to_str(quote_pdf)
+                if not self.values["Business Name"]:
+                    self.values["Business Name"] = backend.find_in_str("Business name", quote_text[0], "\n")
+                if not self.values["Address"]:
+                    self.values["Address"] = self.values["Business Name"].strip(".")+", "+backend.find_in_str("Address", quote_text[0], "\n")
+                if not self.values["System Size"]:
+                    self.values["System Size"] = float(backend.find_in_str("System Size:", quote_text[1], "kWp\n"))
+                if not self.values["Predicted Output"]:
+                    self.values["Predicted Output"] = float(backend.find_in_str("estimated generation:", quote_text[1], "kWh\n").replace(",",""))
+                try:
+                    backend.copy_file(self.paths["Data"].joinpath("Information Template.docx"), self.paths["2"].joinpath("2.1  System Summary & General Information.docx"), overwrite=True)
+                    
+                    
+                    backend.archive(self.paths["2"].joinpath("2.1  System Summary & General Information.docx"), self.paths)
+                except FileNotFoundError:
+                    print("Couldn't find 'Information Template.docx' in the Data path.\nSkipping Section 2\n")
+                    return None
+        except:
+            print("Error caught in completion of section 2. See RunErrors for details.\n")
+            self.errors[2.1] = traceback.format_exc()
+        self.section_status()
         
     
     def section_3(self):

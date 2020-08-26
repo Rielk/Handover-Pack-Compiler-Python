@@ -9,6 +9,7 @@ Backend functions for the Handover Pack class and compilation assiter
 from pathlib import Path
 import pdfplumber
 import shutil
+import json
 import re
 
 def request_comm_site_path(comm_path=None):
@@ -73,6 +74,20 @@ def get_paths(cust_num):
         pack_path = main_path.joinpath("Handover Packs").joinpath(EaO_path.parts[-1])
         pack_path.mkdir(parents=True, exist_ok=True)
         
+        if pack_path.joinpath("File Paths.txt").exists():
+            with open(pack_path.joinpath("File Paths.txt"), "r") as file:
+                path_dict = json.load(file)
+            ret = {}
+            for key in path_dict:
+                if path_dict[key] == None:
+                    val = None
+                else:
+                    val = Path(path_dict[key])
+                    if not val.exists():
+                        continue
+                ret[key] = val
+            return ret
+        
         return {"Main":main_path,
                 "Data":data_path,
                 "Comm Site":comm_path,
@@ -100,9 +115,9 @@ def pdf_to_str(path):
 def find_in_str(find, string, n):
     search = re.search(find, string, re.IGNORECASE)
     if search and type(n)==int:
-        ret = string[search.end():search.end()+n]
+        ret = string[search.end():search.end()+n].strip(" ")
     elif search and type(n)==str:
-        ret = string[search.end():search.end()+re.search(n, string[search.end():], re.IGNORECASE).end()-len(n)]
+        ret = string[search.end():search.end()+re.search(n, string[search.end():], re.IGNORECASE).end()-len(n)].strip(" ")
     elif search:
         raise TypeError("n must be an integer number of digits or a string to search up to")
     else:
@@ -114,4 +129,12 @@ def copy_file(from_path, to_path, overwrite=False):
         shutil.copyfile(str(from_path), str(to_path))
         return True
     else: return False
+    
+def archive(path, paths):
+    i = 0
+    name = paths["Archive"].joinpath(path.parts[-1])
+    while name.exists():
+        i+=1
+        name = paths["Archive"].joinpath(path.with_suffix("").parts[-1]+"("+str(i)+")"+path.suffix)
+    shutil.move(path, name)
     
