@@ -8,6 +8,7 @@ The pdf finding algorithms for the compilation assiter
 """
 import re
 import ui
+import os
 import backend
 
 def Quotation(paths, cust_num):
@@ -53,3 +54,10 @@ def Final_Schematic(paths, cust_num):
     else:
         schem_pdf = paths["Final Schematic"]
     return paths, cust_num, schem_pdf
+
+def Install_Date(paths):
+    os.startfile(str(paths["Customer"].joinpath("2. Photos").joinpath("Install Photos")))
+    return paths, None
+
+def Serial_Numbers(paths):
+    return paths, [None]

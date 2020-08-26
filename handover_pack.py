@@ -10,6 +10,7 @@ import backend
 import traceback
 import find
 import json
+from docx import Document
 from datetime import datetime
 
 class Handover_Pack():
@@ -46,7 +47,9 @@ class Handover_Pack():
             self.values = {"Business Name":None,
                            "Address":None,
                            "System Size":None,
-                           "Predicted Output":None}
+                           "Predicted Output":None,
+                           "Install Date":None,
+                           "Serial Numbers":None}
         
     def __init_file_structure__(self):
         self.structure = {1:[1.1],
@@ -128,7 +131,7 @@ class Handover_Pack():
                 except FileNotFoundError:
                     print("Couldn't find 'Health & Safety Guidelines.pdf' in the Data path.\n")
         except:
-            print("Error caught in completion of section 1.1. See RunErrors for details.\n")
+            print("Error caught in completion of section 1. See RunErrors for details.\n")
             self.errors[1.1] = traceback.format_exc()
         self.section_status()
     
@@ -139,10 +142,14 @@ class Handover_Pack():
                 print("Missing the Quotation pdf, cannot complete section 2.")
                 return None
             self.paths, self.cust_num, schem_pdf = find.Final_Schematic(self.paths, self.cust_num)
-            if not quote_pdf:
+            if not schem_pdf:
                 print("Missing the Final Schematic pdf, cannot complete section 2.")
                 return None
+            
             if not self.checklist[2.1]:
+                self.paths, self.values["Install Date"] = find.Install_Date(self.paths)
+                self.paths, self.values["Serial Numbers"] = find.Serial_Numbers(self.paths)
+                
                 quote_text = backend.pdf_to_str(quote_pdf)
                 if not self.values["Business Name"]:
                     self.values["Business Name"] = backend.find_in_str("Business name", quote_text[0], "\n")
@@ -153,10 +160,35 @@ class Handover_Pack():
                 if not self.values["Predicted Output"]:
                     self.values["Predicted Output"] = float(backend.find_in_str("estimated generation:", quote_text[1], "kWh\n").replace(",",""))
                 try:
-                    backend.copy_file(self.paths["Data"].joinpath("Information Template.docx"), self.paths["2"].joinpath("2.1  System Summary & General Information.docx"), overwrite=True)
+                    path = self.paths["2"].joinpath("2.1  System Summary & General Information.docx")
+                    backend.copy_file(self.paths["Data"].joinpath("Information Template.docx"), path, overwrite=True)
+                    document = Document(path) 
+                    document.paragraphs[4].runs[0].text = "{:.2f} kWp".format(self.values["System Size"])
+                    document.tables[1].rows[1].cells[1].paragraphs[0].runs[0].text = "{:.2f}".format(self.values["System Size"])
+                    document.tables[1].rows[2].cells[1].paragraphs[0].runs[0].text = "{:,.0f} kW".format(self.values["Predicted Output"])
                     
+                    #Format Address in Box
+                    lst = self.values["Address"].split(",")
+                    text = []
+                    lines = 0
+                    for i in range(0, len(lst), 2): 
+                        lines += 1
+                        text.append(lst[i]+","+lst[i+1]+",\n")
+                    lst = text
+                    text = lst[0]
+                    for st in lst[1:]:
+                        text += st
+                    text = text.strip(",\n")
+                    document.tables[0].rows[1].cells[0].paragraphs[3].runs[0].text = text
+                    for i in range(lines-1):
+                        p = document.tables[0].rows[1].cells[0].paragraphs[4]._element
+                        p.getparent().remove(p)
+                        p._p = p._element = None                    
+                    document.tables[0].rows[1].cells[0].paragraphs[8-lines].runs[0].text = "Job ref: "+self.cust_num
+                    #End of Address formatting
                     
-                    backend.archive(self.paths["2"].joinpath("2.1  System Summary & General Information.docx"), self.paths)
+                    document.save(path)
+                    backend.archive(path, self.paths)
                 except FileNotFoundError:
                     print("Couldn't find 'Information Template.docx' in the Data path.\nSkipping Section 2\n")
                     return None
