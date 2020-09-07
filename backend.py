@@ -40,7 +40,7 @@ def get_paths(cust_num):
         return None
     
     #Check data for existing, saved path to communication site directory
-    path = data_path.joinpath("Communication_Site_Path.txt")
+    path = data_path.joinpath("Communication Site Path.txt")
     if path.exists():
         with open(path, "r") as file:
             comm_path = Path(file.read())

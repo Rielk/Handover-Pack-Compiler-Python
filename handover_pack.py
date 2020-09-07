@@ -191,66 +191,78 @@ class Handover_Pack():
                 if not self.values["Prediction Type"]:
                     os.startfile(str(backend.open_folder_n(self.paths["Customer"], 1)))
                     self.values["Prediction Type"] = ui.make_choice(["PVSol", "SolarEdge"], "What type of prediction was used?")
+               
+                
+               
+                
+               
+                
+               find.Inverter_Information(self.paths)
+                
+               
+                
+               
+                
+                path = self.paths["2"].joinpath("2.1  System Summary & General Information.docx")
                 try:
-                    path = self.paths["2"].joinpath("2.1  System Summary & General Information.docx")
                     backend.copy_file(self.paths["Data"].joinpath("Information Template.docx"), path, overwrite=True)
-                    document = Document(path)
-                    if self.values["System Size"]:
-                        document.paragraphs[4].runs[0].text = "{:.2f} kWp".format(self.values["System Size"])
-                        document.tables[1].rows[1].cells[1].paragraphs[0].runs[0].text = "{:.2f}".format(self.values["System Size"])
-                    if self.values["Predicted Output"] and self.values["Prediction Type"]:
-                        document.tables[1].rows[2].cells[1].paragraphs[0].runs[0].text = "{:,.0f} kW".format(self.values["Predicted Output"])
-                        document.tables[1].rows[2].cells[1].paragraphs[0].runs[5].text = ""
-                        document.tables[1].rows[2].cells[1].paragraphs[0].runs[7].text = ""
-                        document.tables[1].rows[2].cells[1].paragraphs[0].runs[8].text = ""
-                        if self.values["Prediction Type"] == "PVSol":
-                            document.tables[1].rows[2].cells[1].paragraphs[0].runs[6].text = ""
-                        elif self.values["Prediction Type"] == "SolarEdge":
-                            document.tables[1].rows[2].cells[1].paragraphs[0].runs[4].text = ""
-                    
-                    #Format Address in Box
-                    lst = self.values["Address"].split(",")
-                    text = []
-                    lines = 0
-                    for a,b in zip_longest(lst[::2],lst[1::2]): 
-                        lines += 1
-                        if b:
-                            text.append(a+","+b+",\n")
-                        else:
-                            text.append(a+",\n")
-                    lst = text
-                    text = lst[0]
-                    for st in lst[1:]:
-                        text += st
-                    text = text.strip(",\n")
-                    document.tables[0].rows[1].cells[0].paragraphs[3].runs[0].text = text
-                    for i in range(lines-1):
-                        p = document.tables[0].rows[1].cells[0].paragraphs[4]._element
-                        p.getparent().remove(p)
-                        p._p = p._element = None                    
-                    document.tables[0].rows[1].cells[0].paragraphs[8-lines].runs[0].text = "Job ref: "+self.cust_num
-                    #End of Address formatting
-                    
-                    self.values = find.Install_Date(self.paths, self.values)
-                    self.values = find.Serial_Numbers(self.paths, self.values)
-                    
-                    if self.values["Serial Numbers"]:
-                        if len(self.values["Serial Numbers"]) > 4:
-                            print("There are too many serial numbers to automatically format into the table for the \"2.1  System Summary & General Information\". Please format manually when prompted before saving.")
-                        else:
-                            for i, sn in enumerate(self.values["Serial Numbers"]):
-                                document.tables[1].rows[5+i].cells[1].paragraphs[0].runs[0].text = sn
-                    if self.values["Install Date"]:
-                        document.tables[1].rows[9].cells[1].paragraphs[0].runs[0].text = self.values["Install Date"]
-                    
-                    document.save(path)
-                    backend.archive(path, self.paths)
                 except FileNotFoundError:
                     print("Couldn't find 'Information Template.docx' in the Data path.\nSkipping Section 2\n")
                     return None
+                document = Document(path)
+                if self.values["System Size"]:
+                    document.paragraphs[4].runs[0].text = "{:.2f} kWp".format(self.values["System Size"])
+                    document.tables[1].rows[1].cells[1].paragraphs[0].runs[0].text = "{:.2f}".format(self.values["System Size"])
+                if self.values["Predicted Output"] and self.values["Prediction Type"]:
+                    document.tables[1].rows[2].cells[1].paragraphs[0].runs[0].text = "{:,.0f} kW".format(self.values["Predicted Output"])
+                    document.tables[1].rows[2].cells[1].paragraphs[0].runs[5].text = ""
+                    document.tables[1].rows[2].cells[1].paragraphs[0].runs[7].text = ""
+                    document.tables[1].rows[2].cells[1].paragraphs[0].runs[8].text = ""
+                    if self.values["Prediction Type"] == "PVSol":
+                        document.tables[1].rows[2].cells[1].paragraphs[0].runs[6].text = ""
+                    elif self.values["Prediction Type"] == "SolarEdge":
+                        document.tables[1].rows[2].cells[1].paragraphs[0].runs[4].text = ""
+                
+                #Format Address in Box
+                lst = self.values["Address"].split(",")
+                text = []
+                lines = 0
+                for a,b in zip_longest(lst[::2],lst[1::2]): 
+                    lines += 1
+                    if b:
+                        text.append(a+","+b+",\n")
+                    else:
+                        text.append(a+",\n")
+                lst = text
+                text = lst[0]
+                for st in lst[1:]:
+                    text += st
+                text = text.strip(",\n")
+                document.tables[0].rows[1].cells[0].paragraphs[3].runs[0].text = text
+                for i in range(lines-1):
+                    p = document.tables[0].rows[1].cells[0].paragraphs[4]._element
+                    p.getparent().remove(p)
+                    p._p = p._element = None                    
+                document.tables[0].rows[1].cells[0].paragraphs[8-lines].runs[0].text = "Job ref: "+self.cust_num
+                #End of Address formatting
+                
+                self.values = find.Install_Date(self.paths, self.values)
+                self.values = find.Serial_Numbers(self.paths, self.values)
+                
+                if self.values["Serial Numbers"]:
+                    if len(self.values["Serial Numbers"]) > 4:
+                        print("There are too many serial numbers to automatically format into the table for the \"2.1  System Summary & General Information\". Please format manually when prompted before saving.")
+                    else:
+                        for i, sn in enumerate(self.values["Serial Numbers"]):
+                            document.tables[1].rows[5+i].cells[1].paragraphs[0].runs[0].text = sn
+                if self.values["Install Date"]:
+                    document.tables[1].rows[9].cells[1].paragraphs[0].runs[0].text = self.values["Install Date"]
+                
+                document.save(path)
+                backend.archive(path, self.paths)
         except:
             print("Error caught in completion of section 2. See RunErrors for details.\n")
-            self.errors[2.1] = traceback.format_exc()
+            self.errors[2] = traceback.format_exc()
         self.section_status()
         
     

@@ -9,6 +9,7 @@ The pdf finding algorithms for the compilation assiter
 import re
 import ui
 import os
+import json
 import backend
 import datetime
 
@@ -145,3 +146,8 @@ def Serial_Numbers(paths, values):
                     print("Please enter \"y\" or \"n\"")
     else:
         return values
+    
+def Inverter_Information(paths):
+    with open(paths["Data"].joinpath("Inverter Types.txt"), "w+") as file:
+        inv_types = json.load(file)
+    inv_types, inv = ui.define_inverter(inv_types)

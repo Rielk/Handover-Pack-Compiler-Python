@@ -113,4 +113,22 @@ def check_conflicting_data(old, new, name):
                 return new
     else:
         return old
-        
+      
+def define_inverter(dic):
+    while True:
+        name = input("What is the name of the new component? Enter \"None\" to cancel and pick an existing component.:\n")
+        if name == "None":
+            return dic, None
+        elif name in dic:
+            while True:
+                confirm = input("A component already exists with that name. Modify this component? (y/n):")
+                if confirm == "y":
+                    break
+                elif confirm == "n":
+                    name = None
+                    break
+                else:
+                    print("Please enter \"y\" or \"n\"")
+            if name != None:
+                break
+    
