@@ -10,6 +10,7 @@ import re
 import ui
 import os
 import backend
+import datetime
 
 def Quotation(paths, cust_num):
     try:
@@ -17,7 +18,7 @@ def Quotation(paths, cust_num):
     except KeyError:
         paths["Quotation"] = None
     if paths["Quotation"] == None:
-        path = paths["Customer"].joinpath("1. Quotes info & PV Sol")
+        path = open_folder_n(paths["Customer"], 1)
         pdfs = [x for x in path.iterdir() if ".pdf" in x.parts[-1]]
         pdfs = [x for x in pdfs if re.search("quote",str(x.parts[-1]),re.IGNORECASE) or re.search("quotation",str(x.parts[-1]),re.IGNORECASE)]
         pdfs = [x for x in pdfs if not re.search("cover",str(x.parts[-1]),re.IGNORECASE)]
@@ -40,7 +41,7 @@ def Final_Schematic(paths, cust_num):
     except KeyError:
         paths["Final Schematic"] = None
     if paths["Final Schematic"] == None:
-        path = paths["Customer"].joinpath("6. DNO & Power").joinpath("Final Schematic for build")
+        path = open_folder_n(paths["Customer"], 6).joinpath("Final Schematic for build")
         pdfs = [x for x in path.iterdir() if ".pdf" in x.parts[-1]]
         schem_pdf = ui.choose_from_file(pdfs, "Final Schematic")
         if schem_pdf:
@@ -55,9 +56,97 @@ def Final_Schematic(paths, cust_num):
         schem_pdf = paths["Final Schematic"]
     return paths, cust_num, schem_pdf
 
-def Install_Date(paths):
-    os.startfile(str(paths["Customer"].joinpath("2. Photos").joinpath("Install Photos")))
-    return paths, None
+def open_folder_n(path, n):
+    for folder in path.iterdir():
+        if folder.parts[-1].startswith("{}.".format(n)):
+            return folder
 
-def Serial_Numbers(paths):
-    return paths, [None]
+def Install_Date(paths, values):
+    try:
+        values["Install Date"]
+    except KeyError:
+        values["Install Date"] = None
+    if values["Install Date"] == None:
+        os.startfile(str(open_folder_n(paths["Customer"], 2).joinpath("Install Photos")))
+        while True:
+            inp = re.split("\D+", input("Find the Install Date in Photos(day/month/year). Enter \"None\" to skip:\n"))
+            if inp == "None":
+                print("Continuing without an Install Date")
+                values["Install Date"] == False
+                print()
+                return values
+            else:
+                date_str = inp
+                if len(date_str) != 3:
+                    print("Input has the wrong number of integers to format to a date. Please input all values in numerical format (eg. 21/1/20 or 4.12.2019)")
+                    continue
+                else:
+                    if len(date_str[2]) != 4:
+                        date_str[2] = str(datetime.date.today().year)[0:2]+date_str[2]
+                    try:
+                        date = datetime.date(int(date_str[2]),int(date_str[1]),int(date_str[0]))
+                    except ValueError:
+                        print("Couldn't format \"{}\" into a date. Please input all values in numerical format (eg. 21/1/20 or 4.12.2019)".format(inp))
+                        continue
+                    while True:
+                        confirm = input("Confirm Date ({}) (y/n):".format(date.strftime("%d %b %Y")))
+                        if confirm == "y":
+                            print()
+                            values["Install Date"] = date.strftime("%d/%m/%Y")
+                            return values
+                        elif confirm == "n":
+                            break
+                        else:
+                            print("Please enter \"y\" or \"n\"")
+    else:
+        return values
+
+def Serial_Numbers(paths, values):
+    try:
+        values["Serial Numbers"]
+    except KeyError:
+        values["Serial Numbers"] = None
+    if values["Serial Numbers"] == None:
+        os.startfile(str(open_folder_n(paths["Customer"], 2).joinpath("Install Photos")))
+        lst = []
+        while True:
+            while True:
+                print("Current Serial Numbers: {}".format(lst))
+                inp = input("Find the Serial Numbers for the inverters from Photos(enter one at a time). Enter \"None\" to skip this step. Enter \"Done\" to finish. Enter \"Clear\" to clear all Serial Numbers and restart:\n").strip(" ")
+                if inp == "None":
+                    if len(lst) == 0:
+                        print("\nContinuing without Serial Numbers")
+                        values["Serial Numbers"] == False
+                        print()
+                        return values
+                    else:
+                        print("\nUse \"Clear\" to reset Serial Numbers before continuing with \"None\"\n")
+                elif inp == "Done":
+                    if len(lst) == 0:
+                        print("\nNo Serial Numbers entered. To continue without Serial Numbers, enter \"None\".\n")
+                        continue
+                    else:
+                        print()
+                        break
+                elif inp == "Clear":
+                    print("\nClearing all Serial Numbers, restarting with none.\n")
+                    lst = []
+                else:
+                    print()
+                    lst.append(inp)
+            while True:
+                print("There is/are {} Serial Number(s):".format(len(lst)))
+                for l in lst:
+                    print(l)
+                confirm = input("Confirm Serial Numbers (y/n):")
+                if confirm == "y":
+                    print()
+                    values["Serial Numbers"] = lst
+                    return values
+                elif confirm == "n":
+                    print()
+                    break
+                else:
+                    print("Please enter \"y\" or \"n\"")
+    else:
+        return values

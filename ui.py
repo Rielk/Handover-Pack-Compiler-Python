@@ -41,6 +41,28 @@ def choose_from_file(pdfs, find):
                 else:
                     print("Please enter \"y\" or \"n\"")
 
+def request_float(request):
+    while True:
+        val = input("Please input the {}. Enter \"None\" to skip:\n".format(request))
+        if val == "None":
+            print()
+            return None
+        else:
+            try:
+                val = float(val)
+            except ValueError:
+                print("\nCouldn't convert {} to a number. Please input only numbers with \".\" to indicate the decimal place.")
+                continue
+            while True:
+                confirm = input("Confirm input ({}) (y/n):".format(val))
+                if confirm == "y":
+                    print()
+                    return val
+                elif confirm == "n":
+                    break
+                else:
+                    print("Please enter \"y\" or \"n\"")
+
 def check_conflicting_data(old, new, name):
     if old != new:
         while True:

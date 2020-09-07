@@ -10,8 +10,12 @@ import backend
 import traceback
 import find
 import json
+import ui
+import re
+import os
 from docx import Document
 from datetime import datetime
+from itertools import zip_longest
 
 class Handover_Pack():
     def __init__(self):
@@ -113,8 +117,16 @@ class Handover_Pack():
             path_dict[key] = val
         with open(self.paths["Pack"].joinpath("File Paths.txt"), "w") as file:
             json.dump(path_dict, file, indent=3, separators=(',\n', ': '), sort_keys=True)
+            
+        val_dict = {}
+        for key in self.values:
+            if self.values[key] == None or self.values[key] == False:
+                val = None
+            else:
+                val = self.values[key]
+            val_dict[key] = val
         with open(self.paths["Pack"].joinpath("Pack Values.txt"), "w") as file:
-            json.dump(self.values, file, indent=3, sort_keys=True)
+            json.dump(val_dict, file, indent=3, sort_keys=True)
     
     def run(self):
         for x in range(1, 8):
@@ -147,33 +159,52 @@ class Handover_Pack():
                 return None
             
             if not self.checklist[2.1]:
-                self.paths, self.values["Install Date"] = find.Install_Date(self.paths)
-                self.paths, self.values["Serial Numbers"] = find.Serial_Numbers(self.paths)
-                
                 quote_text = backend.pdf_to_str(quote_pdf)
                 if not self.values["Business Name"]:
                     self.values["Business Name"] = backend.find_in_str("Business name", quote_text[0], "\n")
                 if not self.values["Address"]:
-                    self.values["Address"] = self.values["Business Name"].strip(".")+", "+backend.find_in_str("Address", quote_text[0], "\n")
+                    ad = backend.find_in_str("Site Address", quote_text[0], "\n")
+                    if ad != re.search("As Above", ad, re.IGNORECASE):
+                        ad = backend.find_in_str("Address", quote_text[0], "\n")
+                        self.values["Address"] = self.values["Business Name"].strip(".")+", "+ad
+                    else:
+                        self.values["Address"] = ad
                 if not self.values["System Size"]:
-                    self.values["System Size"] = float(backend.find_in_str("System Size:", quote_text[1], "kWp\n"))
+                    sys_size = backend.find_in_str("System Size:", quote_text[1], "kWp\n")
+                    if sys_size:
+                        self.values["System Size"] = float(sys_size)
+                    else:
+                        os.startfile(self.paths["Quotation"])
+                        print("Quotation doesn't have information on the System Size.")
+                        self.values["System Size"] = ui.request_float("System Size(kWp)")
                 if not self.values["Predicted Output"]:
-                    self.values["Predicted Output"] = float(backend.find_in_str("estimated generation:", quote_text[1], "kWh\n").replace(",",""))
+                    pred_out = backend.find_in_str("estimated generation:", quote_text[1], "kWh\n")
+                    if pred_out:
+                        self.values["Predicted Output"] = float(pred_out.replace(",",""))
+                    else:
+                        os.startfile(self.paths["Quotation"])
+                        print("Quotation doesn't have information on the Predicted Output.")
+                        self.values["Predicted Output"] = ui.request_float("Predicted Output(kWh)")
                 try:
                     path = self.paths["2"].joinpath("2.1  System Summary & General Information.docx")
                     backend.copy_file(self.paths["Data"].joinpath("Information Template.docx"), path, overwrite=True)
-                    document = Document(path) 
-                    document.paragraphs[4].runs[0].text = "{:.2f} kWp".format(self.values["System Size"])
-                    document.tables[1].rows[1].cells[1].paragraphs[0].runs[0].text = "{:.2f}".format(self.values["System Size"])
-                    document.tables[1].rows[2].cells[1].paragraphs[0].runs[0].text = "{:,.0f} kW".format(self.values["Predicted Output"])
+                    document = Document(path)
+                    if self.values["System Size"]:
+                        document.paragraphs[4].runs[0].text = "{:.2f} kWp".format(self.values["System Size"])
+                        document.tables[1].rows[1].cells[1].paragraphs[0].runs[0].text = "{:.2f}".format(self.values["System Size"])
+                    if self.values["Predicted Output"]:
+                        document.tables[1].rows[2].cells[1].paragraphs[0].runs[0].text = "{:,.0f} kW".format(self.values["Predicted Output"])
                     
                     #Format Address in Box
                     lst = self.values["Address"].split(",")
                     text = []
                     lines = 0
-                    for i in range(0, len(lst), 2): 
+                    for a,b in zip_longest(lst[::2],lst[1::2]): 
                         lines += 1
-                        text.append(lst[i]+","+lst[i+1]+",\n")
+                        if b:
+                            text.append(a+","+b+",\n")
+                        else:
+                            text.append(a+",\n")
                     lst = text
                     text = lst[0]
                     for st in lst[1:]:
@@ -186,6 +217,9 @@ class Handover_Pack():
                         p._p = p._element = None                    
                     document.tables[0].rows[1].cells[0].paragraphs[8-lines].runs[0].text = "Job ref: "+self.cust_num
                     #End of Address formatting
+                    
+                    self.values = find.Install_Date(self.paths, self.values)
+                    self.values = find.Serial_Numbers(self.paths, self.values)
                     
                     document.save(path)
                     backend.archive(path, self.paths)
