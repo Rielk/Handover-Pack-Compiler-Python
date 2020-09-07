@@ -18,7 +18,7 @@ def Quotation(paths, cust_num):
     except KeyError:
         paths["Quotation"] = None
     if paths["Quotation"] == None:
-        path = open_folder_n(paths["Customer"], 1)
+        path = backend.open_folder_n(paths["Customer"], 1)
         pdfs = [x for x in path.iterdir() if ".pdf" in x.parts[-1]]
         pdfs = [x for x in pdfs if re.search("quote",str(x.parts[-1]),re.IGNORECASE) or re.search("quotation",str(x.parts[-1]),re.IGNORECASE)]
         pdfs = [x for x in pdfs if not re.search("cover",str(x.parts[-1]),re.IGNORECASE)]
@@ -41,7 +41,7 @@ def Final_Schematic(paths, cust_num):
     except KeyError:
         paths["Final Schematic"] = None
     if paths["Final Schematic"] == None:
-        path = open_folder_n(paths["Customer"], 6).joinpath("Final Schematic for build")
+        path = backend.open_folder_n(paths["Customer"], 6).joinpath("Final Schematic for build")
         pdfs = [x for x in path.iterdir() if ".pdf" in x.parts[-1]]
         schem_pdf = ui.choose_from_file(pdfs, "Final Schematic")
         if schem_pdf:
@@ -56,18 +56,13 @@ def Final_Schematic(paths, cust_num):
         schem_pdf = paths["Final Schematic"]
     return paths, cust_num, schem_pdf
 
-def open_folder_n(path, n):
-    for folder in path.iterdir():
-        if folder.parts[-1].startswith("{}.".format(n)):
-            return folder
-
 def Install_Date(paths, values):
     try:
         values["Install Date"]
     except KeyError:
         values["Install Date"] = None
     if values["Install Date"] == None:
-        os.startfile(str(open_folder_n(paths["Customer"], 2).joinpath("Install Photos")))
+        os.startfile(str(backend.open_folder_n(paths["Customer"], 2).joinpath("Install Photos")))
         while True:
             inp = re.split("\D+", input("Find the Install Date in Photos(day/month/year). Enter \"None\" to skip:\n"))
             if inp == "None":
@@ -107,7 +102,7 @@ def Serial_Numbers(paths, values):
     except KeyError:
         values["Serial Numbers"] = None
     if values["Serial Numbers"] == None:
-        os.startfile(str(open_folder_n(paths["Customer"], 2).joinpath("Install Photos")))
+        os.startfile(str(backend.open_folder_n(paths["Customer"], 2).joinpath("Install Photos")))
         lst = []
         while True:
             while True:

@@ -18,10 +18,15 @@ from datetime import datetime
 from itertools import zip_longest
 
 class Handover_Pack():
-    def __init__(self):
+    def __init__(self, cust_num=None):
         #Identify Customer number for the pack
         while True:
-            self.cust_num = input("Customer Number: ").strip(" ")
+            if type(cust_num) == int:
+                self.cust_num = str(cust_num)
+            elif type(cust_num) == str:
+                self.cust_num = cust_num                
+            else:
+                self.cust_num = input("Customer Number: ").strip(" ")
             if len(self.cust_num) < 4:
                 print("The Customer number starts with a 4 digits integer. {} is invalid".format(self.cust_num))
                 continue
@@ -52,6 +57,7 @@ class Handover_Pack():
                            "Address":None,
                            "System Size":None,
                            "Predicted Output":None,
+                           "Prediction Type":None,
                            "Install Date":None,
                            "Serial Numbers":None}
         
@@ -154,9 +160,6 @@ class Handover_Pack():
                 print("Missing the Quotation pdf, cannot complete section 2.")
                 return None
             self.paths, self.cust_num, schem_pdf = find.Final_Schematic(self.paths, self.cust_num)
-            if not schem_pdf:
-                print("Missing the Final Schematic pdf, cannot complete section 2.")
-                return None
             
             if not self.checklist[2.1]:
                 quote_text = backend.pdf_to_str(quote_pdf)
@@ -185,6 +188,9 @@ class Handover_Pack():
                         os.startfile(self.paths["Quotation"])
                         print("Quotation doesn't have information on the Predicted Output.")
                         self.values["Predicted Output"] = ui.request_float("Predicted Output(kWh)")
+                if not self.values["Prediction Type"]:
+                    os.startfile(str(backend.open_folder_n(self.paths["Customer"], 1)))
+                    self.values["Prediction Type"] = ui.make_choice(["PVSol", "SolarEdge"], "What type of prediction was used?")
                 try:
                     path = self.paths["2"].joinpath("2.1  System Summary & General Information.docx")
                     backend.copy_file(self.paths["Data"].joinpath("Information Template.docx"), path, overwrite=True)
@@ -192,8 +198,15 @@ class Handover_Pack():
                     if self.values["System Size"]:
                         document.paragraphs[4].runs[0].text = "{:.2f} kWp".format(self.values["System Size"])
                         document.tables[1].rows[1].cells[1].paragraphs[0].runs[0].text = "{:.2f}".format(self.values["System Size"])
-                    if self.values["Predicted Output"]:
+                    if self.values["Predicted Output"] and self.values["Prediction Type"]:
                         document.tables[1].rows[2].cells[1].paragraphs[0].runs[0].text = "{:,.0f} kW".format(self.values["Predicted Output"])
+                        document.tables[1].rows[2].cells[1].paragraphs[0].runs[5].text = ""
+                        document.tables[1].rows[2].cells[1].paragraphs[0].runs[7].text = ""
+                        document.tables[1].rows[2].cells[1].paragraphs[0].runs[8].text = ""
+                        if self.values["Prediction Type"] == "PVSol":
+                            document.tables[1].rows[2].cells[1].paragraphs[0].runs[6].text = ""
+                        elif self.values["Prediction Type"] == "SolarEdge":
+                            document.tables[1].rows[2].cells[1].paragraphs[0].runs[4].text = ""
                     
                     #Format Address in Box
                     lst = self.values["Address"].split(",")
@@ -220,6 +233,15 @@ class Handover_Pack():
                     
                     self.values = find.Install_Date(self.paths, self.values)
                     self.values = find.Serial_Numbers(self.paths, self.values)
+                    
+                    if self.values["Serial Numbers"]:
+                        if len(self.values["Serial Numbers"]) > 4:
+                            print("There are too many serial numbers to automatically format into the table for the \"2.1  System Summary & General Information\". Please format manually when prompted before saving.")
+                        else:
+                            for i, sn in enumerate(self.values["Serial Numbers"]):
+                                document.tables[1].rows[5+i].cells[1].paragraphs[0].runs[0].text = sn
+                    if self.values["Install Date"]:
+                        document.tables[1].rows[9].cells[1].paragraphs[0].runs[0].text = self.values["Install Date"]
                     
                     document.save(path)
                     backend.archive(path, self.paths)

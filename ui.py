@@ -41,6 +41,30 @@ def choose_from_file(pdfs, find):
                 else:
                     print("Please enter \"y\" or \"n\"")
 
+def make_choice(choices, find):
+    print(find)
+    lst = [None]
+    lst.extend(choices)
+    while True:
+        for i, name in enumerate(lst):
+            if name != None:
+                print(str(i)+". "+ name)
+            else:
+                print(str(i)+". Cancel")
+        try:
+            choice = int(input("Which of these choices is correct:\n"))
+        except ValueError:
+            print("\nUnrecognised input, please input an integer option from the below list\n")
+            continue
+        if choice >= len(lst):
+            print("\nUnrecognised input, please input an integer option from the below list\n")
+            continue
+        elif choice == 0:
+            print("\nContinuing without choice\n")
+            return False
+        else:
+            return lst[choice]
+
 def request_float(request):
     while True:
         val = input("Please input the {}. Enter \"None\" to skip:\n".format(request))

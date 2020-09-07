@@ -130,6 +130,11 @@ def copy_file(from_path, to_path, overwrite=False):
         return True
     else: return False
     
+def open_folder_n(path, n):
+    for folder in path.iterdir():
+        if folder.parts[-1].startswith("{}.".format(n)):
+            return folder
+    
 def archive(path, paths):
     i = 0
     name = paths["Archive"].joinpath(path.parts[-1])
