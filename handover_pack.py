@@ -193,7 +193,6 @@ class Handover_Pack():
                     self.values["Prediction Type"] = ui.make_choice(["PVSol", "SolarEdge"], "What type of prediction was used?")
                 self.paths, self.values = find.Inverter_Information(self.paths, self.values)
                 
-                
                 path = self.paths["2"].joinpath("2.1  System Summary & General Information.docx")
                 try:
                     backend.copy_file(self.paths["Data"].joinpath("Information Template.docx"), path, overwrite=True)
