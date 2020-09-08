@@ -191,17 +191,8 @@ class Handover_Pack():
                 if not self.values["Prediction Type"]:
                     os.startfile(str(backend.open_folder_n(self.paths["Customer"], 1)))
                     self.values["Prediction Type"] = ui.make_choice(["PVSol", "SolarEdge"], "What type of prediction was used?")
-               
+                self.paths, self.values = find.Inverter_Information(self.paths, self.values)
                 
-               
-                
-               
-                
-               find.Inverter_Information(self.paths)
-                
-               
-                
-               
                 
                 path = self.paths["2"].joinpath("2.1  System Summary & General Information.docx")
                 try:

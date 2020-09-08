@@ -12,6 +12,7 @@ import os
 import json
 import backend
 import datetime
+from pathlib import Path
 
 def Quotation(paths, cust_num):
     try:
@@ -147,7 +148,62 @@ def Serial_Numbers(paths, values):
     else:
         return values
     
-def Inverter_Information(paths):
-    with open(paths["Data"].joinpath("Inverter Types.txt"), "w+") as file:
-        inv_types = json.load(file)
-    inv_types, inv = ui.define_inverter(inv_types)
+def Inverter_Information(paths, values):
+    try:
+        values["Inverter"]
+        values["SolarEdge Warranty"]
+        paths["Inverter Datasheet"]       
+    except KeyError:
+        values["Inverter"] = None
+        values["SolarEdge Warranty"] = None
+        paths["Inverter Datasheet"] = None
+    
+    if values["Inverter"] == None:
+        if paths["Data"].joinpath("Inverter Types.txt").exists():
+            with open(paths["Data"].joinpath("Inverter Types.txt"), "r") as file:
+                temp_dict = json.load(file)
+            inv_types = {}
+            for key in temp_dict:
+                dic = {"Datasheet":Path(temp_dict[key]["Datasheet"]),
+                       "SolarEdge Warranty":temp_dict[key]["SolarEdge Warranty"]}
+                inv_types[key] = dic
+        else:
+            inv_types = {}
+        
+        os.startfile(str(paths["Quotation"]))
+        try:
+            os.startfile(str(paths["Final Schematic"]))
+        except KeyError:
+            pass
+        while True:
+            lst = ["Add/Modify Existing Inverter", "Unknown, leave missing"]
+            lst.extend([x for x in inv_types])
+            name = ui.choose_from_list(lst, "Choose an inverter from ths list:")
+            if name == "Add/Modify Existing Inverter":    
+                inv_types, name, inv = ui.define_inverter(inv_types, paths)
+                if inv != None:
+                    break
+            elif name == "Unknown, leave missing":
+                name = False
+                inv = False
+                break
+            else:
+                inv = inv_types[name]
+                break
+        
+        temp_dict = {}
+        for key in inv_types:
+            dic = {"Datasheet":str(inv_types[key]["Datasheet"]),
+                   "SolarEdge Warranty":inv_types[key]["SolarEdge Warranty"]}
+            temp_dict[key] = dic
+        with open(paths["Data"].joinpath("Inverter Types.txt"), "w") as file:
+            json.dump(temp_dict, file, indent=3, sort_keys=True)
+            
+        values["Inverter"] = name
+        if inv:
+            values["SolarEdge Warranty"] = inv["SolarEdge Warranty"]
+            paths["Inverter Datasheet"] = inv["Datasheet"]
+        else:
+            values["SolarEdge Warranty"] = None
+            paths["Inverter Datasheet"] = None
+    return paths, values

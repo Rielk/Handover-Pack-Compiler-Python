@@ -11,25 +11,7 @@ import pdfplumber
 import shutil
 import json
 import re
-
-def request_comm_site_path(comm_path=None):
-    """"
-    Verifies that the provided path to the Communication site is valid and requests a path is none is given
-    Returns a valid path or None is the path is invalid
-    """
-    if comm_path==None:
-        comm_path = Path(input("Unable to find the file directory for the Communication site. Please input the path to the file directory containing the 'Enquiries & Orders' and 'Technical Area' folders:\n"))
-    if comm_path.exists():
-        if comm_path.joinpath("Enquiries & Orders").exists():
-            if comm_path.joinpath("Technical Area").exists():
-                return comm_path
-            else:
-                print("\nCouldn't find 'Technical Area' in given directory")
-        else:
-            print("\nCouldn't find 'Enquiries & Orders' in given directory")
-    else:
-        print("\nCouldn't find the given directory path")
-    return None
+import ui
 
 def get_paths(cust_num):
     #Establish Path to files
@@ -49,7 +31,7 @@ def get_paths(cust_num):
     
     #Test path and request a new one until a valid path is provided
     while True:
-        comm_path = request_comm_site_path(comm_path)
+        comm_path = ui.request_comm_site_path(comm_path)
         if comm_path != None:
             break
     #Save the valid path for future use
