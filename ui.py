@@ -69,7 +69,7 @@ def choose_from_file(paths, find, abort=None, abort_msg=""):
             else:
                 print()
                 return lst[choice]
-            
+
 def choose_from_list(lst, find):
     print(find)
     while True:
@@ -131,16 +131,16 @@ def check_conflicting_data(old, new, name):
                 continue
             if choice == 0:
                 print("\nContinuing with missing value\n")
-                return None
+                return None, True
             elif choice == 1:
                 print("\nUsing old value for "+name+"\n")
-                return old
+                return old, True
             elif choice == 2:
                 print("\nUsing new value for "+name+"\n")
-                return new
+                return new, True
     else:
-        return old
-      
+        return old, False
+
 def define_inverter(dic, paths):
     while True:
         name = input("What is the name of the new inverter? Enter \"None\" to cancel and pick an existing inverter.:\n")
@@ -165,7 +165,7 @@ def define_inverter(dic, paths):
                                 name = lower_dic[name.lower()][0]
                                 break
                             else:
-                                print("\nPlease enter \"y\" or \"n\"")                        
+                                print("\nPlease enter \"y\" or \"n\"")
                     break
                 elif confirm == "n":
                     name = None
@@ -197,7 +197,7 @@ def define_inverter(dic, paths):
             break
         else:
             path = new_path
-            
+
     inv = {"Datasheet":datasheet,
            "SolarEdge Warranty":SolarEdge}
     dic[name] = inv

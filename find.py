@@ -27,7 +27,7 @@ def Quotation(paths, cust_num):
         quote_pdf = ui.choose_from_file(pdfs, "Quotation")
         if quote_pdf:
             text = backend.pdf_to_str(quote_pdf)
-            cust_num = ui.check_conflicting_data(cust_num, backend.find_in_str("Quotation Reference", text[0], "\n"), "Customer Number")
+            cust_num, _ = ui.check_conflicting_data(cust_num, backend.find_in_str("Quotation Reference", text[0], "\n"), "Customer Number")
         if cust_num == None or quote_pdf == None:
             print("Confusion on Quotation file, continuing without it\n")
             paths["Quotation"] = False
@@ -48,7 +48,7 @@ def Final_Schematic(paths, cust_num):
         schem_pdf = ui.choose_from_file(pdfs, "Final Schematic")
         if schem_pdf:
             text = backend.pdf_to_str(schem_pdf)
-            cust_num = ui.check_conflicting_data(cust_num, backend.find_in_str("Reference:", text[0], "-"), "Customer Number")
+            cust_num, _ = ui.check_conflicting_data(cust_num, backend.find_in_str("Reference:", text[0], "-"), "Customer Number")
         if cust_num == None or schem_pdf == None:
             print("Confusion on Final Schematic file, continuing without it\n")
             paths["Final Schematic"] = False
@@ -147,63 +147,133 @@ def Serial_Numbers(paths, values):
                     print("Please enter \"y\" or \"n\"")
     else:
         return values
-    
+
 def Inverter_Information(paths, values):
     try:
-        values["Inverter"]
-        values["SolarEdge Warranty"]
-        paths["Inverter Datasheet"]       
+        values["Inverters"]
     except KeyError:
-        values["Inverter"] = None
+        values["Inverters"] = None
+    try:
+        values["SolarEdge Warranty"]
+    except KeyError:
         values["SolarEdge Warranty"] = None
-        paths["Inverter Datasheet"] = None
-    
-    if values["Inverter"] == None:
-        if paths["Data"].joinpath("Inverter Types.txt").exists():
-            with open(paths["Data"].joinpath("Inverter Types.txt"), "r") as file:
-                temp_dict = json.load(file)
-            inv_types = {}
-            for key in temp_dict:
-                dic = {"Datasheet":Path(temp_dict[key]["Datasheet"]),
-                       "SolarEdge Warranty":temp_dict[key]["SolarEdge Warranty"]}
-                inv_types[key] = dic
-        else:
-            inv_types = {}
-        
-        os.startfile(str(paths["Quotation"]))
-        try:
-            os.startfile(str(paths["Final Schematic"]))
-        except KeyError:
-            pass
-        while True:
-            lst = ["Add/Modify Existing Inverter", "Unknown, leave missing"]
-            lst.extend([x for x in inv_types])
-            name = ui.choose_from_list(lst, "Choose an inverter from ths list:")
-            if name == "Add/Modify Existing Inverter":    
-                inv_types, name, inv = ui.define_inverter(inv_types, paths)
-                if inv != None:
+    try:
+        paths["Inverter Datasheets"]
+    except KeyError:
+        paths["Inverter Datasheets"] = None
+
+    if paths["Data"].joinpath("Inverter Types.txt").exists():
+        with open(paths["Data"].joinpath("Inverter Types.txt"), "r") as file:
+            temp_dict = json.load(file)
+        inv_types = {}
+        for key in temp_dict:
+            dic = {"Datasheet":Path(temp_dict[key]["Datasheet"]),
+                    "SolarEdge Warranty":temp_dict[key]["SolarEdge Warranty"]}
+            inv_types[key] = dic
+    else:
+        inv_types = {}
+
+    current_inv_list = []
+    start = True
+    while True:
+        if values["Inverters"] == None:
+            if start:
+                start = False
+                os.startfile(str(paths["Quotation"]))
+                try:
+                    os.startfile(str(paths["Final Schematic"]))
+                except KeyError:
+                    pass
+            while True:
+                lst = ["Add/Modify Existing Inverter"]
+                if current_inv_list:
+                    lst.append("Cancel")
+                else:
+                    lst.append("Unknown, leave missing")
+                lst.extend([x for x in inv_types])
+                if current_inv_list:
+                    print("Current Inverters: {}".format([name for name,_ in current_inv_list]))
+                name = ui.choose_from_list(lst, "Choose an inverter from ths list:")
+                if name == "Add/Modify Existing Inverter":
+                    inv_types, name, inv = ui.define_inverter(inv_types, paths)
+                    if inv != None:
+                        break
+                elif name == "Unknown, leave missing" or name == "Cancel":
+                    print()
+                    name = False
+                    inv = False
                     break
-            elif name == "Unknown, leave missing":
-                name = False
-                inv = False
-                break
-            else:
-                inv = inv_types[name]
-                break
-        
-        temp_dict = {}
-        for key in inv_types:
-            dic = {"Datasheet":str(inv_types[key]["Datasheet"]),
-                   "SolarEdge Warranty":inv_types[key]["SolarEdge Warranty"]}
-            temp_dict[key] = dic
-        with open(paths["Data"].joinpath("Inverter Types.txt"), "w") as file:
-            json.dump(temp_dict, file, indent=3, sort_keys=True)
-            
-        values["Inverter"] = name
-        if inv:
-            values["SolarEdge Warranty"] = inv["SolarEdge Warranty"]
-            paths["Inverter Datasheet"] = inv["Datasheet"]
+                else:
+                    inv = inv_types[name]
+                    break
         else:
-            values["SolarEdge Warranty"] = None
-            paths["Inverter Datasheet"] = None
+            current_inv_list = []
+            for name in values["Inverters"]:
+                try:
+                    current_inv_list.append((name,inv_types[name]))
+                except KeyError:
+                    lowered_inv_types = dict((k.lower(), (k,v)) for k,v in inv_types.items())
+                    if name.lower() in lowered_inv_types:
+                        current_inv_list.append(lowered_inv_types[name.lower()])
+                    else:
+                        print("Unknown Inverter stored in \"Pack Values\". Re-enter Inverter Information.")
+                        values["Inverters"] = None
+                        return Inverter_Information(paths, values)
+            name = False
+
+        while True:
+            if name:
+                another = input("Add another inverter? (y/n):\n")
+                if another == "y":
+                    print()
+                    break
+                elif another == "n":
+                    print()
+                    break
+                else:
+                    print("Please enter \"y\" or \"n\"")
+            else:
+                another = None
+                break
+        if another != None:
+            current_inv_list.append((name,inv))
+        if another == "n":
+            break
+        if another == None:
+            break
+
+    if current_inv_list:
+        values["Inverters"] = [name for name,_ in current_inv_list]
+        if sum([inv["SolarEdge Warranty"] for _,inv in current_inv_list]):
+            values["SolarEdge Warranty"] = True
+        else:
+            values["SolarEdge Warranty"] = False
+        paths["Inverter Datasheets"] = [inv["Datasheet"] for _,inv in current_inv_list]
+    else:
+        values["Inverters"] = False
+        values["SolarEdge Warranty"] = None
+        paths["Inverter Datasheets"] = None
+
+    temp_dict = {}
+    for key in inv_types:
+        dic = {"Datasheet":str(inv_types[key]["Datasheet"]),
+                "SolarEdge Warranty":inv_types[key]["SolarEdge Warranty"]}
+        temp_dict[key] = dic
+    with open(paths["Data"].joinpath("Inverter Types.txt"), "w") as file:
+        json.dump(temp_dict, file, indent=3, sort_keys=True)
+    return paths, values
+
+def Module_Information(paths, values):
+    try:
+        values["Module"]
+        paths["Module Warranty"]
+        paths["Module Datasheet"]
+    except KeyError:
+        values["Module"] = None
+        paths["Module Warranty"] = None
+        paths["Module Datasheet"] = None
+
+    if values["Module"] == None:
+        pass
+
     return paths, values

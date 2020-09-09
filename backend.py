@@ -20,7 +20,7 @@ def get_paths(cust_num):
     if not data_path.exists():
         print("Path to Data directory not found. Assistor has been run from the wrong place. Aborting")
         return None
-    
+
     #Check data for existing, saved path to communication site directory
     path = data_path.joinpath("Communication Site Path.txt")
     if path.exists():
@@ -28,7 +28,7 @@ def get_paths(cust_num):
             comm_path = Path(file.read())
     else:
         comm_path = None
-    
+
     #Test path and request a new one until a valid path is provided
     while True:
         comm_path = ui.request_comm_site_path(comm_path)
@@ -37,10 +37,10 @@ def get_paths(cust_num):
     #Save the valid path for future use
     with open(path, "w+") as file:
         file.write(str(comm_path))
-    
-    EaO_path = comm_path.joinpath("Enquiries & Orders")    
+
+    EaO_path = comm_path.joinpath("Enquiries & Orders")
     TA_path = comm_path.joinpath("Technical Area").joinpath("SOLAR PV")
-    
+
     #Find Customer's directory path inside Enquiries and Orders then update EaO_path to that directory
     for path in EaO_path.iterdir():
         if path.parts[-1][0:len(cust_num)] == cust_num:
@@ -50,12 +50,12 @@ def get_paths(cust_num):
     else:
         abort = True
         print("Cannot find that customer number '{}' in the Enquiries and Orders directory".format(cust_num))
-    
+
     if not abort:
         #Create the directory for the pack to be created into
         pack_path = main_path.joinpath("Handover Packs").joinpath(EaO_path.parts[-1])
         pack_path.mkdir(parents=True, exist_ok=True)
-        
+
         if pack_path.joinpath("File Paths.txt").exists():
             with open(pack_path.joinpath("File Paths.txt"), "r") as file:
                 path_dict = json.load(file)
@@ -63,13 +63,21 @@ def get_paths(cust_num):
             for key in path_dict:
                 if path_dict[key] == None:
                     val = None
+                elif type(path_dict[key]) == list:
+                    val = [Path(x) for x in path_dict[key]]
+                    for x in val:
+                        if not x.exists():
+                            break
+                    else:
+                        ret[key] = val
+                    continue
                 else:
                     val = Path(path_dict[key])
                     if not val.exists():
                         continue
                 ret[key] = val
             return ret
-        
+
         return {"Main":main_path,
                 "Data":data_path,
                 "Comm Site":comm_path,
@@ -111,12 +119,12 @@ def copy_file(from_path, to_path, overwrite=False):
         shutil.copyfile(str(from_path), str(to_path))
         return True
     else: return False
-    
+
 def open_folder_n(path, n):
     for folder in path.iterdir():
         if folder.parts[-1].startswith("{}.".format(n)):
             return folder
-    
+
 def archive(path, paths):
     i = 0
     name = paths["Archive"].joinpath(path.parts[-1])
@@ -124,4 +132,3 @@ def archive(path, paths):
         i+=1
         name = paths["Archive"].joinpath(path.with_suffix("").parts[-1]+"("+str(i)+")"+path.suffix)
     shutil.move(path, name)
-    
