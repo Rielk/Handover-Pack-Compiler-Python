@@ -14,6 +14,7 @@ import ui
 import re
 import os
 from docx import Document
+from docx2pdf import convert as convert_to_pdf
 from datetime import datetime
 from itertools import zip_longest
 
@@ -152,7 +153,6 @@ class Handover_Pack():
             if not self.checklist[1.1]:
                 try:
                     backend.copy_file(self.paths["Data"].joinpath("Health & Safety Guidelines.pdf"), self.paths["1.1"], overwrite=True)
-                    self.checklist[1.1] = True
                 except FileNotFoundError:
                     print("Couldn't find \"Health & Safety Guidelines.pdf\" in the Data path.\n")
                     self.required[1] = "Missing \"Health & Safety Guidelines.pdf\" in Data folder"
@@ -301,9 +301,28 @@ class Handover_Pack():
                     document.tables[1].rows[9].cells[1].paragraphs[0].runs[0].text = self.values["Install Date"]
 
                     document.save(path)
+                    os.startfile(str(path))
+                    while True:
+                        confirm = input("Confirm Document formating, then save and exit, then enter \"Done\". Enter \"Skip\" if formating can't be resolved.\n")
+                        if confirm == "Done":
+                            to_pdf = True
+                            break
+                        elif confirm == "Skip":
+                            to_pdf = False
+                            break
+                        else:
+                            print("Please enter \"Done\" or \"Skip\"")
+                    if to_pdf:
+                        convert_to_pdf(path)
+                    else:
+                        self.required[2] = "Didn't complete formatting of Word Document before conversion to pdf."
+
                     backend.archive(path, self.paths)
                 else:
-                    self.required[2] = []
+                    try:
+                        self.required[2]
+                    except KeyError:
+                        self.required[2] = []
                     for key in checklist:
                         if not checklist[key]:
                             self.required[2].append("Missing value for \"{}\"".format(key))
