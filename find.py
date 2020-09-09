@@ -2,7 +2,7 @@
 """
 Created on Wed Aug 26 13:06:00 2020
 
-The pdf finding algorithms for the compilation assiter
+The information finding algorithms for the compilation assiter
 
 @author: William
 """
@@ -66,13 +66,14 @@ def Install_Date(paths, values):
     if values["Install Date"] == None:
         os.startfile(str(backend.open_folder_n(paths["Customer"], 2).joinpath("Install Photos")))
         while True:
-            inp = re.split("\D+", input("Find the Install Date in Photos(day/month/year). Enter \"None\" to skip:\n"))
+            inp = input("Find the Install Date in Photos(day/month/year). Enter \"None\" to skip:\n")
             if inp == "None":
-                print("Continuing without an Install Date")
+                print("\nContinuing without an Install Date")
                 values["Install Date"] == False
                 print()
                 return values
             else:
+                inp = re.split("\D+", inp)
                 date_str = inp
                 if len(date_str) != 3:
                     print("Input has the wrong number of integers to format to a date. Please input all values in numerical format (eg. 21/1/20 or 4.12.2019)")
@@ -193,7 +194,7 @@ def Inverter_Information(paths, values):
                 lst.extend([x for x in inv_types])
                 if current_inv_list:
                     print("Current Inverters: {}".format([name for name,_ in current_inv_list]))
-                name = ui.choose_from_list(lst, "Choose an inverter from ths list:")
+                name = ui.choose_from_list(lst, "Choose an inverter from this list:")
                 if name == "Add/Modify Existing Inverter":
                     inv_types, name, inv = ui.define_inverter(inv_types, paths)
                     if inv != None:
@@ -266,14 +267,71 @@ def Inverter_Information(paths, values):
 def Module_Information(paths, values):
     try:
         values["Module"]
-        paths["Module Warranty"]
-        paths["Module Datasheet"]
     except KeyError:
         values["Module"] = None
-        paths["Module Warranty"] = None
-        paths["Module Datasheet"] = None
+
+    if paths["Data"].joinpath("Module Types.txt").exists():
+        with open(paths["Data"].joinpath("Module Types.txt"), "r") as file:
+            temp_dict = json.load(file)
+        mod_types = {}
+        for key in temp_dict:
+            dic = {"Datasheet":Path(temp_dict[key]["Datasheet"]),
+                    "Warranty":Path(temp_dict[key]["Warranty"])}
+            mod_types[key] = dic
+    else:
+        mod_types = {}
 
     if values["Module"] == None:
-        pass
+        os.startfile(str(paths["Quotation"]))
+        os.startfile(str(backend.open_folder_n(paths["Customer"], 10)))
+        while True:
+            lst = ["Add/Modify Existing Module", "Unknown, leave missing"]
+            lst.extend([x for x in mod_types])
+            name = ui.choose_from_list(lst, "Choose a module from this list:")
+            if name == "Add/Modify Existing Module":
+                mod_types, name, mod = ui.define_module(mod_types, paths)
+                if mod != None:
+                    break
+            elif name == "Unknown, leave missing" or name == "Cancel":
+                name = False
+                mod = False
+                break
+            else:
+                mod = mod_types[name]
+                break
+    else:
+        name = values["Module"]
+        try:
+            mod = mod_types[name]
+        except KeyError:
+            lowered_mod_types = dict((k.lower(), (k,v)) for k,v in mod_types.items())
+            if name.lower() in lowered_mod_types:
+                name, mod = lowered_inv_types[name.lower()]
+            else:
+                print("Unknown Module stored in \"Pack Values\". Re-enter Module Information.")
+                values["Module"] = None
+                return Module_Information(paths, values)
+
+    values["Module"] = name
+    try:
+        values["Module Number"]
+    except KeyError:
+        values["Module Number"] = None
+    if values["Module Number"] == None and values["Module"]:
+        values["Module Number"] = ui.request_int("number of pannels")
+    if mod:
+        paths["Module Warranty"] = mod["Warranty"]
+        paths["Module Datasheet"] = mod["Datasheet"]
+    else:
+        paths["Module Warranty"] = False
+        paths["Module Datasheet"] = False
+
+    temp_dict = {}
+    for key in mod_types:
+        dic = {"Datasheet":str(mod_types[key]["Datasheet"]),
+                "Warranty":str(mod_types[key]["Warranty"])}
+        temp_dict[key] = dic
+    with open(paths["Data"].joinpath("Module Types.txt"), "w") as file:
+        json.dump(temp_dict, file, indent=3, sort_keys=True)
 
     return paths, values

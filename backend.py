@@ -91,9 +91,18 @@ def dump_dict(path, dic):
     with open(path, "w") as file:
         first = None
         for index in dic:
-            if not first==str(index)[0] and first!=None:
+            if first!=str(index)[0] and first!=None:
                 file.write("\n")
-            file.write(str(index)+":"+str(dic[index])+"\n")
+            if type(dic[index]) == list:
+                file.write(str(index)+":"+str(dic[index][0])+"\n")
+                if len(dic[index]) > 1:
+                    fill = ""
+                    for _ in range(len(str(index))):
+                        fill += " "
+                    for x in dic[index][1:]:
+                        file.write(fill+":"+x+"\n")
+            else:
+                file.write(str(index)+":"+str(dic[index])+"\n")
             first = str(index)[0]
 
 def pdf_to_str(path):

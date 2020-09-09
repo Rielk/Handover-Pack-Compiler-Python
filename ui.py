@@ -102,7 +102,7 @@ def request_float(request):
             try:
                 val = float(val)
             except ValueError:
-                print("\nCouldn't convert {} to a number. Please input only numbers with \".\" to indicate the decimal place.")
+                print("\nCouldn't convert {} to a number. Please input only numbers with \".\" to indicate the decimal place.".format(val))
                 continue
             while True:
                 confirm = input("Confirm input ({}) (y/n):".format(val))
@@ -113,6 +113,20 @@ def request_float(request):
                     break
                 else:
                     print("Please enter \"y\" or \"n\"")
+
+def request_int(request):
+    while True:
+        val = input("Please input the {}. Enter \"None\" to skip:\n".format(request))
+        if val == "None":
+            print()
+            return None
+        else:
+            try:
+                val = int(val)
+            except ValueError:
+                print("\nCouldn't convert {} to an integer. Please input an integer".format(val))
+                continue
+            return val
 
 def check_conflicting_data(old, new, name):
     if old != new:
@@ -202,3 +216,66 @@ def define_inverter(dic, paths):
            "SolarEdge Warranty":SolarEdge}
     dic[name] = inv
     return dic, name, inv
+
+def define_module(dic, paths):
+    while True:
+        name = input("What is the name of the new module? Enter \"None\" to cancel and pick an existing module.:\n")
+        lower_dic = dict((k.lower(), (k,v)) for k,v in dic.items())
+        if name == "None":
+            print()
+            return dic, None, None
+        elif name.lower() in lower_dic:
+            while True:
+                confirm = input("A module already exists with the name \"{}\". Modify this module? (y/n):\n".format(lower_dic[name.lower()][0]))
+                if confirm == "y":
+                    mod = lower_dic[name.lower()][1]
+                    if name != lower_dic[name.lower()][0]:
+                        while True:
+                            change  = input("Change name to \"{}\"? (y/n):\n".format(name))
+                            if change == "y":
+                                print("\nName changed from \"{}\" to \"{}\".".format(lower_dic[name.lower()][0], name))
+                                dic.pop(lower_dic[name.lower()][0], None)
+                                break
+                            elif change == "n":
+                                print("\nUsing name \"{}\".\n".format(lower_dic[name.lower()][0]))
+                                name = lower_dic[name.lower()][0]
+                                break
+                            else:
+                                print("\nPlease enter \"y\" or \"n\"")
+                    break
+                elif confirm == "n":
+                    name = None
+                    break
+                else:
+                    print("\nPlease enter \"y\" or \"n\"")
+        if name != None:
+            break
+
+    path = paths["Tech Area"].joinpath("PV Modules")
+    while True:
+        files = [x for x in path.iterdir() if ".pdf" in x.parts[-1] or x.with_suffix("") == x]
+        new_path = choose_from_file(files, "Module's Datasheet", "Move up to parent Directory")
+        if new_path == None:
+            path = path.parent
+        elif ".pdf" in new_path.parts[-1]:
+            datasheet = new_path
+            break
+        else:
+            path = new_path
+
+    path = paths["Tech Area"].joinpath("PV Modules")
+    while True:
+        files = [x for x in path.iterdir() if ".pdf" in x.parts[-1] or x.with_suffix("") == x]
+        new_path = choose_from_file(files, "Module's Warranty", "Move up to parent Directory")
+        if new_path == None:
+            path = path.parent
+        elif ".pdf" in new_path.parts[-1]:
+            warranty = new_path
+            break
+        else:
+            path = new_path
+
+    mod = {"Datasheet":datasheet,
+           "Warranty":warranty}
+    dic[name] = mod
+    return dic, name, mod
