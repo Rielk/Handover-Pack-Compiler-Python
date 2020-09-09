@@ -153,6 +153,7 @@ class Handover_Pack():
             if not self.checklist[1.1]:
                 try:
                     backend.copy_file(self.paths["Data"].joinpath("Health & Safety Guidelines.pdf"), self.paths["1.1"], overwrite=True)
+                    self.checklist[1.1] = True
                 except FileNotFoundError:
                     print("Couldn't find \"Health & Safety Guidelines.pdf\" in the Data path.\n")
                     self.required[1] = "Missing \"Health & Safety Guidelines.pdf\" in Data folder"
@@ -314,6 +315,7 @@ class Handover_Pack():
                             print("Please enter \"Done\" or \"Skip\"")
                     if to_pdf:
                         convert_to_pdf(path)
+                        self.checklist[2.1] = True
                     else:
                         self.required[2] = "Didn't complete formatting of Word Document before conversion to pdf."
 
@@ -330,7 +332,6 @@ class Handover_Pack():
             print("Error caught in completion of section 2. See RunErrors for details.\n")
             self.errors[2] = traceback.format_exc()
         self.section_status()
-
 
     def section_3(self):
         pass
