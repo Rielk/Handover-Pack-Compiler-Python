@@ -28,6 +28,56 @@ def request_comm_site_path(comm_path=None):
         print("\nCouldn't find the given directory path")
     return None
 
+def request_warranty_path(paths):
+    path = paths["Data"].joinpath("Mypower Warranty Path.txt")
+    if path.exists():
+        with open(path, "r") as file:
+            paths["Warranty"] = Path(file.read())
+    try:
+        paths["Warranty"]
+    except KeyError:
+        paths["Warranty"] = None
+    while True:
+        if paths["Warranty"] == None:
+            path = input("Unable to find the Mypower Installation Warranty. Please input the path to the Mypower Installation Warranty. \"None\" to skip.:\n")
+            if path == "None":
+                return paths
+            else:
+                paths["Warranty"] = Path(path)
+        if paths["Warranty"].exists():
+            break
+        else:
+            print("\nCouldn't find the given directory path to the Mypower Installation Warranty")
+            paths["Warranty"] = None
+    with open(path, "w+") as file:
+        file.write(str(paths["Warranty"]))
+    return paths
+
+def request_solaredge_warranty_path(paths):
+    path = paths["Data"].joinpath("SolarEdge Warranty Path.txt")
+    if path.exists():
+        with open(path, "r") as file:
+            paths["SolarEdge Warranty"] = Path(file.read())
+    try:
+        paths["SolarEdge Warranty"]
+    except KeyError:
+        paths["SolarEdge Warranty"] = None
+    while True:
+        if paths["SolarEdge Warranty"] == None:
+            path = input("Unable to find the SolarEdge Installation Warranty. Please input the path to the SolarEdge Installation Warranty. \"None\" to skip.:\n")
+            if path == "None":
+                return paths
+            else:
+                paths["SolarEdge Warranty"] = Path(path)
+        if paths["SolarEdge Warranty"].exists():
+            break
+        else:
+            print("\nCouldn't find the given directory path to the SolarEdge Installation Warranty")
+            paths["SolarEdge Warranty"] = None
+    with open(path, "w+") as file:
+        file.write(str(paths["SolarEdge Warranty"]))
+    return paths
+
 def choose_from_file(paths, find, abort=None, abort_msg=""):
     print("Which file looks like the {}?".format(find))
     lst = [abort]

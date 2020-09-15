@@ -119,6 +119,8 @@ class Handover_Pack():
             backend.dump_dict(self.paths["RunErrors"].joinpath("RunErrors, {}.txt".format(dt.strftime("%d %b %y, %H-%M-%S"))), self.errors)
         backend.dump_dict(self.paths["Checklists"].joinpath("Checklist, {}.txt".format(dt.strftime("%d %b %y, %H-%M-%S"))), self.checklist)
         backend.dump_dict(self.paths["Pack"].joinpath("Last Run Checklist.txt"), self.checklist)
+        if self.required == {}:
+            self.required = {None: "All Information Provided. Pack is complete."}
         backend.dump_dict(self.paths["Pack"].joinpath("Information missing from Last Run.txt"), self.required)
         path_dict = {}
         for key in self.paths:
@@ -244,7 +246,7 @@ class Handover_Pack():
                         checklist[key] = True
 
                 if check:
-                    path = self.paths["2"].joinpath("2.1  System Summary & General Information.docx")
+                    path = self.paths["2.1"].with_suffix(".docx")
                     try:
                         backend.copy_file(self.paths["Data"].joinpath("Information Template.docx"), path, overwrite=True)
                     except FileNotFoundError:
@@ -334,7 +336,53 @@ class Handover_Pack():
         self.section_status()
 
     def section_3(self):
-        pass
+        try:
+            if not self.checklist[3.1]:
+                self.paths = ui.request_warranty_path(self.paths)
+                if self.paths["Warranty"]:
+                    backend.copy_file(self.paths["Warranty"], self.paths["3.1"], overwrite=True)
+                else:
+                    try:
+                        self.required[3]
+                    except KeyError:
+                        self.required[3] = []
+                    self.required[3].append("Missing Mypower Installation Warranty.")
+                self.checklist[3.1] = True
+
+            if not self.checklist[3.2] or not self.checklist[3.3]:
+                self.paths, self.values = find.Module_Information(self.paths, self.values)
+                if self.paths["Module Warranty"]:
+                    backend.copy_file(self.paths["Module Warranty"], self.paths["3.2"], overwrite=True)
+                if self.paths["Module Datasheet"]:
+                    backend.copy_file(self.paths["Module Datasheet"], self.paths["3.3"], overwrite=True)
+                if not (self.paths["Module Warranty"] and self.paths["Module Datasheet"]):
+                    try:
+                        self.required[3]
+                    except KeyError:
+                        self.required[3] = []
+                    self.required[3].append("Missing Module type for warranties and datasheets")
+
+            if not self.checklist[3.4] or not self.checklist[3.41] or not self.checklist[3.5]:
+                if self.values["SolarEdge Warranty"]:
+                    self.paths = ui.request_solaredge_warranty_path(self.paths)
+                    if self.paths["SolarEdge Warranty"]:
+                        backend.copy_file(self.paths["SolarEdge Warranty"], self.paths["3.5"], overwrite=True)
+                        self.checklist[3.5] = True
+                else:
+                    self.checklist[3.5] = True
+                if self.values["Inverters"]:
+                    if len(self.values["Inverters"]) == 1: #or if all inverters are the same:
+                        pass
+                    else:
+                        for i, name in enumerate(self.values["Inverters"]):
+                            path = self.paths["3.4"].parent.joinpath(self.paths["3.4"].with_suffix("").parts[-1]+" ({}).pdf".format(name))
+                            backend.copy_file(self.paths["Inverter Datasheets"][i], path, overwrite=True)
+                    self.checklist[3.4] = True
+
+        except:
+            print("Error caught in completion of section 3. See RunErrors for details.\n")
+            self.errors[3] = traceback.format_exc()
+        self.section_status()
 
     def section_4(self):
         pass

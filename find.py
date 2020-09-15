@@ -207,6 +207,9 @@ def Inverter_Information(paths, values):
                 else:
                     inv = inv_types[name]
                     break
+        elif values["Inverters"] == False:
+            name = False
+            inv = False
         else:
             current_inv_list = []
             for name in values["Inverters"]:
@@ -299,6 +302,9 @@ def Module_Information(paths, values):
             else:
                 mod = mod_types[name]
                 break
+    elif values["Module"] == False:
+        name = False
+        mod = False
     else:
         name = values["Module"]
         try:
@@ -306,7 +312,7 @@ def Module_Information(paths, values):
         except KeyError:
             lowered_mod_types = dict((k.lower(), (k,v)) for k,v in mod_types.items())
             if name.lower() in lowered_mod_types:
-                name, mod = lowered_inv_types[name.lower()]
+                name, mod = lowered_mod_types[name.lower()]
             else:
                 print("Unknown Module stored in \"Pack Values\". Re-enter Module Information.")
                 values["Module"] = None
