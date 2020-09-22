@@ -362,7 +362,8 @@ class Handover_Pack():
                         self.required[3] = []
                     self.required[3].append("Missing Module type for warranties and datasheets")
 
-            if not self.checklist[3.4] or not self.checklist[3.41] or not self.checklist[3.5]:
+            if not self.checklist[3.5]:
+                self.paths, self.values = find.Inverter_Information(self.paths, self.values)
                 if self.values["SolarEdge Warranty"]:
                     self.paths = ui.request_solaredge_warranty_path(self.paths)
                     if self.paths["SolarEdge Warranty"]:
@@ -370,14 +371,42 @@ class Handover_Pack():
                         self.checklist[3.5] = True
                 else:
                     self.checklist[3.5] = True
-                if self.values["Inverters"]:
-                    if len(self.values["Inverters"]) == 1: #or if all inverters are the same:
-                        pass
+
+            if not self.checklist[3.4]:
+                self.paths, self.values = find.Inverter_Information(self.paths, self.values)
+                if self.paths["Inverter Datasheets"] and self.values["Inverters"]:
+                    if len(self.paths["Inverter Datasheets"]) == 1 or all(x==self.paths["Inverter Datasheets"][0] for x in self.paths["Inverter Datasheets"]):
+                        backend.copy_file(self.paths["Inverter Datasheets"][0], self.paths["3.4"], overwrite=True)
                     else:
-                        for i, name in enumerate(self.values["Inverters"]):
+                        groups = []
+                        for name, datasheet in zip(self.values["Inverters"], self.paths["Inverter Datasheets"]):
+                            if (name, datasheet) not in groups:
+                                groups.append((name, datasheet))
+                        for i, (name, datasheet) in enumerate(groups):
+
+
+
+                            #CHANGE NUMBERING ON 3.4 to 3.4.1
+
+
                             path = self.paths["3.4"].parent.joinpath(self.paths["3.4"].with_suffix("").parts[-1]+" ({}).pdf".format(name))
-                            backend.copy_file(self.paths["Inverter Datasheets"][i], path, overwrite=True)
+                            backend.copy_file(datasheet, path, overwrite=True)
                     self.checklist[3.4] = True
+
+            if not self.checklist[3.6]:
+                self.paths, self.values = find.Optimiser_Information(self.paths, self.values)
+                if self.paths["Optimiser Datasheet"]:
+                    if not self.values["Optimiser"] == "No Optimisers":
+                        backend.copy_file(self.paths["Optimiser Datasheet"], self.paths["3.6"], overwrite=True)
+                    self.checklist[3.6] = True
+
+            if not self.checklist[3.41]:
+                self.paths, self.values = find.Inverter_Information(self.paths, self.values)
+                if self.values["Inverters"]:
+                        if len(self.values["Inverters"]) > 1:
+                            pass
+                        else:
+                            pass
 
         except:
             print("Error caught in completion of section 3. See RunErrors for details.\n")

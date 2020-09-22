@@ -341,3 +341,76 @@ def Module_Information(paths, values):
         json.dump(temp_dict, file, indent=3, sort_keys=True)
 
     return paths, values
+
+def Optimiser_Information(paths, values):
+    try:
+        values["Optimiser"]
+    except KeyError:
+        values["Optimiser"] = None
+
+    if paths["Data"].joinpath("Optimiser Types.txt").exists():
+        with open(paths["Data"].joinpath("Optimiser Types.txt"), "r") as file:
+            temp_dict = json.load(file)
+        opt_types = {}
+        for key in temp_dict:
+            dic = {"Datasheet":Path(temp_dict[key]["Datasheet"])}
+            opt_types[key] = dic
+    else:
+        opt_types = {}
+
+    if values["Optimiser"] == None:
+        os.startfile(str(paths["Quotation"]))
+        os.startfile(str(backend.open_folder_n(paths["Customer"], 10)))
+        while True:
+            lst = ["Add/Modify Existing Optimiser", "No Optimisers", "Unknown, leave missing"]
+            lst.extend([x for x in opt_types])
+            name = ui.choose_from_list(lst, "Choose an optimiser from this list:")
+            if name == "Add/Modify Existing Optimiser":
+                opt_types, name, opt = ui.define_optimiser(opt_types, paths)
+                if opt != None:
+                    break
+            elif name == "Unknown, leave missing" or name == "Cancel":
+                name = False
+                opt = False
+                break
+            elif name  == "No Optimisers":
+                name = "No Optimisers"
+                opt = {"Datasheet":"No Optimisers"}
+                break
+            else:
+                opt = opt_types[name]
+                break
+    elif values["Optimiser"] == False:
+        name = False
+        opt = False
+    elif values["Optimiser"]  == "No Optimisers":
+        name = "No Optimisers"
+        opt = {"Datasheet":"No Optimisers"}
+    else:
+        name = values["Optimiser"]
+        try:
+            opt = opt_types[name]
+        except KeyError:
+            lowered_opt_types = dict((k.lower(), (k,v)) for k,v in opt_types.items())
+            if name.lower() in lowered_opt_types:
+                name, opt = lowered_opt_types[name.lower()]
+            else:
+                print("Unknown Optimiser stored in \"Pack Values\". Re-enter Module Information.")
+                values["Optimiser"] = None
+                return Optimiser_Information(paths, values)
+
+    values["Optimiser"] = name
+    if opt:
+        paths["Optimiser Datasheet"] = opt["Datasheet"]
+    else:
+        paths["Optimiser Datasheet"] = False
+
+    temp_dict = {}
+    for key in opt_types:
+        dic = {"Datasheet":str(opt_types[key]["Datasheet"])}
+        temp_dict[key] = dic
+    with open(paths["Data"].joinpath("Optimiser Types.txt"), "w") as file:
+        json.dump(temp_dict, file, indent=3, sort_keys=True)
+
+    return paths, values
+

@@ -329,3 +329,54 @@ def define_module(dic, paths):
            "Warranty":warranty}
     dic[name] = mod
     return dic, name, mod
+
+def define_optimiser(dic, paths):
+    while True:
+        name = input("What is the name of the new optimiser? Enter \"None\" to cancel and pick an existing optimiser.:\n")
+        lower_dic = dict((k.lower(), (k,v)) for k,v in dic.items())
+        if name == "None":
+            print()
+            return dic, None, None
+        elif name.lower() in lower_dic:
+            while True:
+                confirm = input("An optimiser already exists with the name \"{}\". Modify this optimiser? (y/n):\n".format(lower_dic[name.lower()][0]))
+                if confirm == "y":
+                    mod = lower_dic[name.lower()][1]
+                    if name != lower_dic[name.lower()][0]:
+                        while True:
+                            change  = input("Change name to \"{}\"? (y/n):\n".format(name))
+                            if change == "y":
+                                print("\nName changed from \"{}\" to \"{}\".".format(lower_dic[name.lower()][0], name))
+                                dic.pop(lower_dic[name.lower()][0], None)
+                                break
+                            elif change == "n":
+                                print("\nUsing name \"{}\".\n".format(lower_dic[name.lower()][0]))
+                                name = lower_dic[name.lower()][0]
+                                break
+                            else:
+                                print("\nPlease enter \"y\" or \"n\"")
+                    break
+                elif confirm == "n":
+                    name = None
+                    break
+                else:
+                    print("\nPlease enter \"y\" or \"n\"")
+        if name != None:
+            break
+
+    path = paths["Tech Area"].joinpath("Optimisers")
+    while True:
+        files = [x for x in path.iterdir() if ".pdf" in x.parts[-1] or x.with_suffix("") == x]
+        new_path = choose_from_file(files, "Optimisers's Datasheet", "Move up to parent Directory")
+        if new_path == None:
+            path = path.parent
+        elif ".pdf" in new_path.parts[-1]:
+            datasheet = new_path
+            break
+        else:
+            path = new_path
+
+    opt = {"Datasheet":datasheet}
+    dic[name] = opt
+    return dic, name, opt
+
