@@ -14,6 +14,7 @@ import ui
 import re
 import os
 from docx import Document
+from pathlib import Path
 from docx2pdf import convert as convert_to_pdf
 from datetime import datetime
 from itertools import zip_longest
@@ -69,8 +70,8 @@ class Handover_Pack():
                           3:[3.1, 3.2, 3.3, 3.4, 3.41, 3.5, 3.6],
                           4:[4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7],
                           5:[5.1, 5.2],
-                          6:[6.1],
-                          7:[7.1, 7.2]}
+                          6:[6.1, 6.2],
+                          7:[7.1]}
         with open(self.paths["Data"].joinpath("Folder Structure.txt"), "r") as file:
             temp_dict = json.load(file)
         for i in self.structure:
@@ -98,11 +99,24 @@ class Handover_Pack():
         self.checklist = {1:False, 2:False, 3:False, 4:False, 5:False, 6:False, 7:False,
                           1.1:False, 2.1:False, 3.1:False, 3.2:False, 3.3:False, 3.4:False, 3.41:False,
                           3.5:False, 3.6:False, 4.1:False, 4.2:False, 4.3:False, 4.4:False, 4.5:False,
-                          4.6:False, 4.7:False, 5.1:False, 5.2:False, 6.1:False, 7.1:False, 7.2:False,
+                          4.6:False, 4.7:False, 5.1:False, 5.2:False, 6.1:False, 6.2:False, 7.1:False,
                           }
+
         for index in self.checklist:
-            self.checklist[index] = self.paths[str(index)].exists()
+            if index != int(index):
+                self.checklist[index] = self.paths[str(index)].exists()
+                if not self.checklist[index]:
+                    path = backend.open_folder_n(self.paths["Pack"], int(index))
+                    for folder in path.iterdir():
+                        if index == 3.41:
+                            i = "3.4a"
+                        else:
+                            i = index
+                        if folder.parts[-1].startswith("{}.".format(i)):
+                            self.checklist[index] = True
+                            break
         self.section_status()
+
 
     def section_status(self):
         for section in self.structure:
@@ -127,7 +141,7 @@ class Handover_Pack():
             if self.paths[key] == None or self.paths[key] == False:
                 val = None
             elif type(self.paths[key]) == list:
-                val = [str(x) for x in self.paths[key]]
+                val = [str(x) if type(Path()) == type(x) else x for x in self.paths[key]]
             else:
                 val = str(self.paths[key])
             path_dict[key] = val
@@ -383,13 +397,8 @@ class Handover_Pack():
                             if (name, datasheet) not in groups:
                                 groups.append((name, datasheet))
                         for i, (name, datasheet) in enumerate(groups):
-
-
-
-                            #CHANGE NUMBERING ON 3.4 to 3.4.1
-
-
                             path = self.paths["3.4"].parent.joinpath(self.paths["3.4"].with_suffix("").parts[-1]+" ({}).pdf".format(name))
+                            path = path.parent.joinpath("3.4.{}".format(i+1)+path.parts[-1].strip("3.4"))
                             backend.copy_file(datasheet, path, overwrite=True)
                     self.checklist[3.4] = True
 
@@ -402,11 +411,27 @@ class Handover_Pack():
 
             if not self.checklist[3.41]:
                 self.paths, self.values = find.Inverter_Information(self.paths, self.values)
-                if self.values["Inverters"]:
-                        if len(self.values["Inverters"]) > 1:
-                            pass
-                        else:
-                            pass
+                self.values = find.Serial_Numbers(self.paths, self.values)
+                self.paths, self.values = find.Extended_Warranties(self.paths, self.values)
+                if not any([True if x == None else False for x in self.paths["Extended Warranties"]]):
+                    if len(self.paths["Extended Warranties"]) == 1:
+                        confirm = backend.copy_file(self.paths["Extended Warranties"][0], self.paths["3.41"], overwrite=False)
+                        if not confirm:
+                            print("File already exists at the location the Extended Warranty was trying to be moved to. Please move this to the archive and try again.")
+                            raise FileExistsError("File already exists at the location the Extended Warranty was trying to be moved to. Please move this to the archive and try again.")
+                    else:
+                        groups = []
+                        for warr,sn in zip(self.paths["Extended Warranties"], self.values["Serial Numbers"]):
+                            if (warr, sn) not in groups and warr:
+                                groups.append((warr, sn))
+                        for i, (warr, sn) in enumerate(groups):
+                            path = self.paths["3.41"].parent.joinpath(self.paths["3.41"].with_suffix("").parts[-1]+" ({}).pdf".format(sn))
+                            path = path.parent.joinpath("3.4a.{}".format(i+1)+path.parts[-1].strip("3.4a"))
+                            confirm = backend.copy_file(warr, path, overwrite=False)
+                            if not confirm:
+                                print("File already exists at the location the Extended Warranty was trying to be moved to. Please move this to the archive and try again.")
+                                raise FileExistsError("File already exists at the location the Extended Warranty was trying to be moved to. Please move this to the archive and try again.")
+                    self.checklist[3.41] = True
 
         except:
             print("Error caught in completion of section 3. See RunErrors for details.\n")

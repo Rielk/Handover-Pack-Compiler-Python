@@ -414,3 +414,26 @@ def Optimiser_Information(paths, values):
 
     return paths, values
 
+def Extended_Warranties(paths, values):
+    try:
+        paths["Extended Warranties"]
+    except KeyError:
+        paths["Extended Warranties"] = None
+    try:
+        values["Serial Numbers"]
+    except KeyError:
+        values["Serial Numbers"] = None
+
+    if paths["Extended Warranties"] == None:
+        if values["Serial Numbers"]:
+            paths["Extended Warranties"] = [ui.warranty_sub(paths, values, sn) for sn in values["Serial Numbers"]]
+        else:
+            print("No known Serial Numbers for checking against Extended Warranties. Skipping Warranty stage.")
+    elif type(paths["Extended Warranties"]) == list:
+        if any([True if x == None else False for x in paths["Extended Warranties"]]):
+            todo = [(ui.warranty_sub(paths, values, sn),sn) for x,sn in zip(paths["Extended Warranties"],values["Serial Numbers"]) if x == None]
+            done = [(x,sn) for x,sn in zip(paths["Extended Warranties"],values["Serial Numbers"]) if x != None]
+            done.extend(todo)
+            paths["Extended Warranties"] = [x for x,sn in done]
+            values["Serial Numbers"] = [sn for x,sn in done]
+    return paths, values

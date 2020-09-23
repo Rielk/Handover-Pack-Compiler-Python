@@ -64,10 +64,16 @@ def get_paths(cust_num):
                 if path_dict[key] == None:
                     val = None
                 elif type(path_dict[key]) == list:
-                    val = [Path(x) for x in path_dict[key]]
+                    val = []
+                    for x in path_dict[key]:
+                        try:
+                            val.append(Path(x))
+                        except TypeError:
+                            val.append(x)
                     for x in val:
-                        if not x.exists():
-                            break
+                        if type(Path()) == type(x):
+                            if not x.exists():
+                                break
                     else:
                         ret[key] = val
                     continue

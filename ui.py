@@ -7,6 +7,7 @@ Deals with user interface for the compilation assiter
 @author: William
 """
 import os
+import backend
 from pathlib import Path
 
 def request_comm_site_path(comm_path=None):
@@ -78,7 +79,7 @@ def request_solaredge_warranty_path(paths):
         file.write(str(paths["SolarEdge Warranty"]))
     return paths
 
-def choose_from_file(paths, find, abort=None, abort_msg=""):
+def choose_from_file(paths, find, abort=None, abort_msg=None):
     print("Which file looks like the {}?".format(find))
     lst = [abort]
     lst.extend(paths)
@@ -102,10 +103,11 @@ def choose_from_file(paths, find, abort=None, abort_msg=""):
             print("\nContinuing with missing file\n")
             return None
         elif lst[choice] == abort:
-            print(abort_msg)
+            if abort_msg:
+                print(abort_msg)
             return None
         else:
-            if lst[choice].with_suffix("") != lst[choice]:
+            if not os.path.isdir(lst[choice]):
                 os.startfile(str(lst[choice]))
                 while True:
                     confirm = input("Confirm Choice (y/n):\n")
@@ -252,7 +254,7 @@ def define_inverter(dic, paths):
     print()
     path = paths["Tech Area"].joinpath("Inverters")
     while True:
-        files = [x for x in path.iterdir() if ".pdf" in x.parts[-1] or x.with_suffix("") == x]
+        files = [x for x in path.iterdir() if ".pdf" in x.parts[-1] or os.path.isdir(path)]
         new_path = choose_from_file(files, "Inverter's Datasheet", "Move up to parent Directory")
         if new_path == None:
             path = path.parent
@@ -303,7 +305,7 @@ def define_module(dic, paths):
 
     path = paths["Tech Area"].joinpath("PV Modules")
     while True:
-        files = [x for x in path.iterdir() if ".pdf" in x.parts[-1] or x.with_suffix("") == x]
+        files = [x for x in path.iterdir() if ".pdf" in x.parts[-1] or os.path.isdir(path)]
         new_path = choose_from_file(files, "Module's Datasheet", "Move up to parent Directory")
         if new_path == None:
             path = path.parent
@@ -315,7 +317,7 @@ def define_module(dic, paths):
 
     path = paths["Tech Area"].joinpath("PV Modules")
     while True:
-        files = [x for x in path.iterdir() if ".pdf" in x.parts[-1] or x.with_suffix("") == x]
+        files = [x for x in path.iterdir() if ".pdf" in x.parts[-1] or os.path.isdir(path)]
         new_path = choose_from_file(files, "Module's Warranty", "Move up to parent Directory")
         if new_path == None:
             path = path.parent
@@ -341,7 +343,7 @@ def define_optimiser(dic, paths):
             while True:
                 confirm = input("An optimiser already exists with the name \"{}\". Modify this optimiser? (y/n):\n".format(lower_dic[name.lower()][0]))
                 if confirm == "y":
-                    mod = lower_dic[name.lower()][1]
+                    opt = lower_dic[name.lower()][1]
                     if name != lower_dic[name.lower()][0]:
                         while True:
                             change  = input("Change name to \"{}\"? (y/n):\n".format(name))
@@ -366,7 +368,7 @@ def define_optimiser(dic, paths):
 
     path = paths["Tech Area"].joinpath("Optimisers")
     while True:
-        files = [x for x in path.iterdir() if ".pdf" in x.parts[-1] or x.with_suffix("") == x]
+        files = [x for x in path.iterdir() if ".pdf" in x.parts[-1] or os.path.isdir(path)]
         new_path = choose_from_file(files, "Optimisers's Datasheet", "Move up to parent Directory")
         if new_path == None:
             path = path.parent
@@ -380,3 +382,33 @@ def define_optimiser(dic, paths):
     dic[name] = opt
     return dic, name, opt
 
+def warranty_sub(paths, values, sn):
+    path = backend.open_folder_n(paths["Customer"], 11)
+    while True:
+        files = [x for x in path.iterdir() if ".pdf" in x.parts[-1] or os.path.isdir(path)]
+        if path == paths["Customer"]:
+            new_path = choose_from_file(files, "Extended Warranty for the Inverter with Serial Number: {}".format(sn), "Extended Warranties not present")
+        else:
+            new_path = choose_from_file(files, "Extended Warranty for the Inverter with Serial Number: {}\nMove up to Customer Directory if Extended Warranties not present".format(sn), "Move up to parent Directory")
+
+        if new_path == None and path == paths["Customer"]:
+            while True:
+                se = input("Is an Extended Warranty required and just not on file at the minute?(y/n):\n")
+                if se == "y":
+                    warranty = None
+                    break
+                elif se == "n":
+                    warranty = False
+                    break
+                else:
+                    print("Please enter \"y\" or \"n\"")
+            print()
+            break
+        elif new_path == None:
+            path = path.parent
+        elif ".pdf" in new_path.parts[-1]:
+            warranty = new_path
+            break
+        else:
+            path = new_path
+    return warranty
