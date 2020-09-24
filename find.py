@@ -426,12 +426,12 @@ def Extended_Warranties(paths, values):
 
     if paths["Extended Warranties"] == None:
         if values["Serial Numbers"]:
-            paths["Extended Warranties"] = [ui.warranty_sub(paths, values, sn) for sn in values["Serial Numbers"]]
+            paths["Extended Warranties"] = [ui.find_in_folder(paths, "Extended Warranty for the Inverter with Serial Number: {}".format(sn), "Extended Warranty", True, 11) for sn in values["Serial Numbers"]]
         else:
             print("No known Serial Numbers for checking against Extended Warranties. Skipping Warranty stage.")
     elif type(paths["Extended Warranties"]) == list:
         if any([True if x == None else False for x in paths["Extended Warranties"]]):
-            todo = [(ui.warranty_sub(paths, values, sn),sn) for x,sn in zip(paths["Extended Warranties"],values["Serial Numbers"]) if x == None]
+            todo = [(ui.find_in_folder(paths, "Extended Warranty for the Inverter with Serial Number: {}".format(sn), "Extended Warranty", True, 11),sn) for x,sn in zip(paths["Extended Warranties"],values["Serial Numbers"]) if x == None]
             done = [(x,sn) for x,sn in zip(paths["Extended Warranties"],values["Serial Numbers"]) if x != None]
             done.extend(todo)
             paths["Extended Warranties"] = [x for x,sn in done]

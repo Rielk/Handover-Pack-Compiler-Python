@@ -77,10 +77,12 @@ def get_paths(cust_num):
                     else:
                         ret[key] = val
                     continue
-                else:
+                elif type(path_dict[key]) == str:
                     val = Path(path_dict[key])
                     if not val.exists():
                         continue
+                else:
+                    val = path_dict[key]
                 ret[key] = val
             return ret
 

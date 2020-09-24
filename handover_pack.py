@@ -91,15 +91,18 @@ class Handover_Pack():
         self.paths["Checklists"] = self.paths["Pack"].joinpath("Checklists")
         self.paths["RunErrors"] = self.paths["Pack"].joinpath("RunErrors")
         self.paths["Archive"] = self.paths["Pack"].joinpath("Archive")
+        self.paths["Notes"] = self.paths["Pack"].joinpath("User Notes.txt")
         self.paths["Checklists"].mkdir(exist_ok=True)
         self.paths["RunErrors"].mkdir(exist_ok=True)
         self.paths["Archive"].mkdir(exist_ok=True)
+        with open(self.paths["Notes"], 'w') as _:
+            pass
 
     def check_existing(self):
         self.checklist = {1:False, 2:False, 3:False, 4:False, 5:False, 6:False, 7:False,
                           1.1:False, 2.1:False, 3.1:False, 3.2:False, 3.3:False, 3.4:False, 3.41:False,
                           3.5:False, 3.6:False, 4.1:False, 4.2:False, 4.3:False, 4.4:False, 4.5:False,
-                          4.6:False, 4.7:False, 5.1:False, 5.2:False, 6.1:False, 6.2:False, 7.1:False,
+                          4.6:False, 5.1:False, 5.2:False, 6.1:False, 6.2:False, 7.1:False,
                           }
 
         for index in self.checklist:
@@ -126,13 +129,19 @@ class Handover_Pack():
                     done = False
             self.checklist[section] = done
 
+    def _require(self, n, add):
+        try:
+            self.required[n]
+        except KeyError:
+            self.required[n] = []
+        self.required[n].append(add)
+
     def end_of_run_dump(self):
-        self.check_existing()
         dt = datetime.now()
         if self.errors:
             backend.dump_dict(self.paths["RunErrors"].joinpath("RunErrors, {}.txt".format(dt.strftime("%d %b %y, %H-%M-%S"))), self.errors)
         backend.dump_dict(self.paths["Checklists"].joinpath("Checklist, {}.txt".format(dt.strftime("%d %b %y, %H-%M-%S"))), self.checklist)
-        backend.dump_dict(self.paths["Pack"].joinpath("Last Run Checklist.txt"), self.checklist)
+        #backend.dump_dict(self.paths["Pack"].joinpath("Last Run Checklist.txt"), self.checklist)
         if self.required == {}:
             self.required = {None: "All Information Provided. Pack is complete."}
         backend.dump_dict(self.paths["Pack"].joinpath("Information missing from Last Run.txt"), self.required)
@@ -142,8 +151,10 @@ class Handover_Pack():
                 val = None
             elif type(self.paths[key]) == list:
                 val = [str(x) if type(Path()) == type(x) else x for x in self.paths[key]]
-            else:
+            elif type(self.paths[key]) == type(Path()):
                 val = str(self.paths[key])
+            else:
+                val = self.paths[key]
             path_dict[key] = val
         with open(self.paths["Pack"].joinpath("File Paths.txt"), "w") as file:
             json.dump(path_dict, file, indent=3, separators=(',\n', ': '), sort_keys=True)
@@ -172,7 +183,7 @@ class Handover_Pack():
                     self.checklist[1.1] = True
                 except FileNotFoundError:
                     print("Couldn't find \"Health & Safety Guidelines.pdf\" in the Data path.\n")
-                    self.required[1] = "Missing \"Health & Safety Guidelines.pdf\" in Data folder"
+                    self._require(1, "Missing \"Health & Safety Guidelines.pdf\" in Data folder")
         except:
             print("Error caught in completion of section 1. See RunErrors for details.\n")
             self.errors[1.1] = traceback.format_exc()
@@ -183,7 +194,7 @@ class Handover_Pack():
             self.paths, self.cust_num, quote_pdf = find.Quotation(self.paths, self.cust_num)
             if not quote_pdf:
                 print("Missing the Quotation pdf, cannot complete section 2.")
-                self.required[2] = "Missing the Quotation pdf"
+                self._require(2, "Missing the Quotation pdf")
                 return None
             self.paths, self.cust_num, schem_pdf = find.Final_Schematic(self.paths, self.cust_num)
 
@@ -333,17 +344,13 @@ class Handover_Pack():
                         convert_to_pdf(path)
                         self.checklist[2.1] = True
                     else:
-                        self.required[2] = "Didn't complete formatting of Word Document before conversion to pdf."
+                        self._require(2, "Didn't complete formatting of Word Document before conversion to pdf.")
 
                     backend.archive(path, self.paths)
                 else:
-                    try:
-                        self.required[2]
-                    except KeyError:
-                        self.required[2] = []
                     for key in checklist:
                         if not checklist[key]:
-                            self.required[2].append("Missing value for \"{}\"".format(key))
+                            self._require(2, "Missing value for \"{}\"".format(key))
         except:
             print("Error caught in completion of section 2. See RunErrors for details.\n")
             self.errors[2] = traceback.format_exc()
@@ -356,11 +363,7 @@ class Handover_Pack():
                 if self.paths["Warranty"]:
                     backend.copy_file(self.paths["Warranty"], self.paths["3.1"], overwrite=True)
                 else:
-                    try:
-                        self.required[3]
-                    except KeyError:
-                        self.required[3] = []
-                    self.required[3].append("Missing Mypower Installation Warranty.")
+                    self._require(3, "Missing Mypower Installation Warranty.")
                 self.checklist[3.1] = True
 
             if not self.checklist[3.2] or not self.checklist[3.3]:
@@ -370,11 +373,7 @@ class Handover_Pack():
                 if self.paths["Module Datasheet"]:
                     backend.copy_file(self.paths["Module Datasheet"], self.paths["3.3"], overwrite=True)
                 if not (self.paths["Module Warranty"] and self.paths["Module Datasheet"]):
-                    try:
-                        self.required[3]
-                    except KeyError:
-                        self.required[3] = []
-                    self.required[3].append("Missing Module type for warranties and datasheets.")
+                    self._require(3, "Missing Module type for warranties and datasheets.")
 
             if not self.checklist[3.5]:
                 self.paths, self.values = find.Inverter_Information(self.paths, self.values)
@@ -386,11 +385,7 @@ class Handover_Pack():
                 elif self.values["SolarEdge Warranty"] == False:
                     self.checklist[3.5] = True
                 else:
-                    try:
-                        self.required[3]
-                    except KeyError:
-                        self.required[3] = []
-                    self.required[3].append("Is a SolarEdge Warranty required?")
+                    self._require(3, "Is a SolarEdge Warranty required?")
 
             if not self.checklist[3.4]:
                 self.paths, self.values = find.Inverter_Information(self.paths, self.values)
@@ -408,11 +403,7 @@ class Handover_Pack():
                             backend.copy_file(datasheet, path, overwrite=True)
                     self.checklist[3.4] = True
                 else:
-                    try:
-                        self.required[3]
-                    except KeyError:
-                        self.required[3] = []
-                    self.required[3].append("Missing Inverter type for warranties and datasheets.")
+                    self._require(3, "Missing Inverter type for warranties and datasheets.")
 
             if not self.checklist[3.6]:
                 self.paths, self.values = find.Optimiser_Information(self.paths, self.values)
@@ -420,6 +411,8 @@ class Handover_Pack():
                     if not self.values["Optimiser"] == "No Optimisers":
                         backend.copy_file(self.paths["Optimiser Datasheet"], self.paths["3.6"], overwrite=True)
                     self.checklist[3.6] = True
+                else:
+                    self._require(3, "Missing Optimiser type for warranties and datasheets.")
 
             if not self.checklist[3.41]:
                 self.paths, self.values = find.Inverter_Information(self.paths, self.values)
@@ -445,24 +438,146 @@ class Handover_Pack():
                                 raise FileExistsError("File already exists at the location the Extended Warranty was trying to be moved to. Please move this to the archive and try again.")
                     self.checklist[3.41] = True
                 else:
-                    try:
-                        self.required[3]
-                    except KeyError:
-                        self.required[3] = []
-                    self.required[3].append("Missing Extended Warranties.")
+                    self._require(3, "Missing Extended Warranties.")
         except:
             print("Error caught in completion of section 3. See RunErrors for details.\n")
             self.errors[3] = traceback.format_exc()
         self.section_status()
 
     def section_4(self):
-        pass
+        try:
+            if not self.checklist[4.1]:
+                self.paths, self.cust_num, schem_pdf = find.Final_Schematic(self.paths, self.cust_num)
+                if schem_pdf:
+                    backend.copy_file(schem_pdf, self.paths["4.1"])
+                    self.checklist[4.1] = True
+                else:
+                    self._require(4, "Missing Final Schematic.")
+            if not self.checklist[4.2]:
+                self.paths["AC Cert"] = ui.find_in_folder(self.paths, "Commissioning test report (AC Cert)", n=10)
+                if self.paths["AC Cert"]:
+                    backend.copy_file(self.paths["AC Cert"], self.paths["4.2"])
+                    self.checklist[4.2] = True
+                else:
+                    self._require(4, "Missing Commissioning test reports (AC Cert).")
+            if not self.checklist[4.3]:
+                self.paths["DC Cert"] = ui.find_in_folder(self.paths, "Commissioning test report (DC Cert)", n=10)
+                if self.paths["DC Cert"]:
+                    backend.copy_file(self.paths["DC Cert"], self.paths["4.3"])
+                    self.checklist[4.3] = True
+                else:
+                    self._require(4, "Missing Commissioning test reports (DC Cert).")
+            if not self.checklist[4.4]:
+                self.paths["G99 Form"] = ui.find_in_folder(self.paths, "DNO commissioning form (G99 Form A3-1)", n=6)
+                if self.paths["G99 Form"]:
+                    backend.copy_file(self.paths["G99 Form"], self.paths["4.4"])
+                    self.checklist[4.4] = True
+                else:
+                    self._require(4, "Missing DNO commissioning form (G99 Form A3-1).")
+            if not self.checklist[4.5]:
+                self.paths["Sign Off"] = ui.find_in_folder(self.paths, "Inverter & wiring sign off", n=10)
+                if self.paths["Sign Off"]:
+                    backend.copy_file(self.paths["Sign Off"], self.paths["4.5"])
+                    self.checklist[4.5] = True
+                else:
+                    self._require(4, "Missing Inverter & wiring sign off.")
+            if not self.checklist[4.6]:
+                self.paths["DNO Notification"] = ui.find_in_folder(self.paths, "DNO commissioning notification", n=6)
+                if self.paths["DNO Notification"]:
+                    backend.copy_file(self.paths["DNO Notification"], self.paths["4.6"])
+                    self.checklist[4.6] = True
+                else:
+                    self._require(4, "Missing DNO commissioning notification.")
+        except:
+            print("Error caught in completion of section 4. See RunErrors for details.\n")
+            self.errors[4] = traceback.format_exc()
+        self.section_status()
 
     def section_5(self):
-        pass
+        try:
+            if not self.checklist[5.1]:
+                self.paths["Summary Report"] = ui.find_in_folder(self.paths, "Summary Report", n=1)
+                if self.paths["Summary Report"]:
+                    backend.copy_file(self.paths["Summary Report"], self.paths["5.1"])
+                    self.checklist[5.1] = True
+                else:
+                    self._require(5, "Missing Summary Report.")
+            if not self.checklist[5.2]:
+                self.paths["Prediction Tool"] = ui.find_in_folder(self.paths, "Predicted Output Comparison Tool", n=11, file_types=[".xlsx"])
+                if self.paths["Prediction Tool"]:
+                    backend.copy_file(self.paths["Prediction Tool"], self.paths["5.2"])
+                    self.checklist[5.2] = True
+                else:
+                    self._require(5, "Missing Predicted Output Comparison Tool.")
+        except:
+            print("Error caught in completion of section 5. See RunErrors for details.\n")
+            self.errors[5] = traceback.format_exc()
+        self.section_status()
 
     def section_6(self):
-        pass
+        try:
+            if not self.checklist[6.1]:
+                self.paths["NAPIT Notification"] = ui.find_in_folder(self.paths, "NAPIT Work notification details", n=11)
+                if self.paths["NAPIT Notification"]:
+                    backend.copy_file(self.paths["NAPIT Notification"], self.paths["6.1"])
+                    self.checklist[6.1] = True
+                else:
+                    self._require(6, "Missing NAPIT Work notification details.")
+            if not self.checklist[6.2]:
+                try:
+                    self.paths["Structural Cert"]
+                except KeyError:
+                    self.paths["Structural Cert"] = None
+                if self.paths["Structural Cert"] == None:
+                    self.paths["Structural Cert"] = ui.find_in_folder(self.paths, "Structural survey certificate", option_for_none=True, n=1)
+                if self.paths["Structural Cert"]:
+                    if self.paths["Structural Cert"] != True:
+                        backend.copy_file(self.paths["Structural Cert"], self.paths["6.2"])
+                    self.checklist[6.2] = True
+                elif self.paths["Structural Cert"] == False:
+                    self.checklist[6.2] = True
+                else:
+                    self._require(6, "Missing Structural survey certificate.")
+        except:
+            print("Error caught in completion of section 6. See RunErrors for details.\n")
+            self.errors[6] = traceback.format_exc()
+        self.section_status()
 
     def section_7(self):
-        pass
+        try:
+            if not self.checklist[7.1]:
+                if not self.values["System Size"]:
+                    self.paths, self.cust_num, quote_pdf = find.Quotation(self.paths, self.cust_num)
+                    if quote_pdf:
+                        self.paths, self.cust_num, schem_pdf = find.Final_Schematic(self.paths, self.cust_num)
+                        quote_text = backend.pdf_to_str(quote_pdf)
+                        sys_size = backend.find_in_str("System Size:", quote_text[1], "kWp\n")
+                        if sys_size:
+                            self.values["System Size"] = float(sys_size)
+                if self.values["System Size"]==None:
+                    try:
+                        self.paths["MCS Certificate"]
+                    except KeyError:
+                        self.paths["MCS Certificate"] = None
+                    if self.paths["MCS Certificate"] == None:
+                        self.paths["MCS Certificate"] = ui.find_in_folder(self.paths, "MCS Certificate", n=11, option_for_none=True)
+                    if self.paths["MCS Certificate"]:
+                        if self.paths["MCS Certificate"] != True:
+                            backend.copy_file(self.paths["MCS Certificate"], self.paths["7.1"])
+                        self.checklist[7.1] = True
+                    else:
+                        self._require(7, "Missing MCS Certificate.")
+                elif self.values["System Size"]<=50:
+                    self.paths["MCS Certificate"] = ui.find_in_folder(self.paths, "MCS Certificate", n=11)
+                    if self.paths["MCS Certificate"]:
+                        backend.copy_file(self.paths["MCS Certificate"], self.paths["7.1"])
+                        self.checklist[7.1] = True
+                    else:
+                        self._require(7, "Missing MCS Certificate.")
+                if self.values["System Size"]>50 or self.paths["MCS Certificate"]==False:
+                    os.rmdir(self.paths["7"])
+                    self.checklist[7.1] = True
+        except:
+            print("Error caught in completion of section 7. See RunErrors for details.\n")
+            self.errors[7] = traceback.format_exc()
+        self.section_status()
