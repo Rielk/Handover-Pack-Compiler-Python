@@ -374,7 +374,7 @@ class Handover_Pack():
                         self.required[3]
                     except KeyError:
                         self.required[3] = []
-                    self.required[3].append("Missing Module type for warranties and datasheets")
+                    self.required[3].append("Missing Module type for warranties and datasheets.")
 
             if not self.checklist[3.5]:
                 self.paths, self.values = find.Inverter_Information(self.paths, self.values)
@@ -383,8 +383,14 @@ class Handover_Pack():
                     if self.paths["SolarEdge Warranty"]:
                         backend.copy_file(self.paths["SolarEdge Warranty"], self.paths["3.5"], overwrite=True)
                         self.checklist[3.5] = True
-                else:
+                elif self.values["SolarEdge Warranty"] == False:
                     self.checklist[3.5] = True
+                else:
+                    try:
+                        self.required[3]
+                    except KeyError:
+                        self.required[3] = []
+                    self.required[3].append("Is a SolarEdge Warranty required?")
 
             if not self.checklist[3.4]:
                 self.paths, self.values = find.Inverter_Information(self.paths, self.values)
@@ -401,6 +407,12 @@ class Handover_Pack():
                             path = path.parent.joinpath("3.4.{}".format(i+1)+path.parts[-1].strip("3.4"))
                             backend.copy_file(datasheet, path, overwrite=True)
                     self.checklist[3.4] = True
+                else:
+                    try:
+                        self.required[3]
+                    except KeyError:
+                        self.required[3] = []
+                    self.required[3].append("Missing Inverter type for warranties and datasheets.")
 
             if not self.checklist[3.6]:
                 self.paths, self.values = find.Optimiser_Information(self.paths, self.values)
@@ -432,7 +444,12 @@ class Handover_Pack():
                                 print("File already exists at the location the Extended Warranty was trying to be moved to. Please move this to the archive and try again.")
                                 raise FileExistsError("File already exists at the location the Extended Warranty was trying to be moved to. Please move this to the archive and try again.")
                     self.checklist[3.41] = True
-
+                else:
+                    try:
+                        self.required[3]
+                    except KeyError:
+                        self.required[3] = []
+                    self.required[3].append("Missing Extended Warranties.")
         except:
             print("Error caught in completion of section 3. See RunErrors for details.\n")
             self.errors[3] = traceback.format_exc()
