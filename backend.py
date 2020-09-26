@@ -15,7 +15,7 @@ import ui
 
 def get_paths(cust_num):
     #Establish Path to files
-    main_path = Path.cwd().parent
+    main_path = Path.cwd()
     data_path = main_path.joinpath("Data")
     if not data_path.exists():
         print("Path to Data directory not found. Assistor has been run from the wrong place. Aborting")
@@ -52,14 +52,21 @@ def get_paths(cust_num):
         print("Cannot find that customer number '{}' in the Enquiries and Orders directory".format(cust_num))
 
     if not abort:
-        #Create the directory for the pack to be created into
-        pack_path = main_path.joinpath("Handover Packs").joinpath(EaO_path.parts[-1])
-        pack_path.mkdir(parents=True, exist_ok=True)
+        pack_path = open_folder_n(EaO_path, 11)
+        if not pack_path.joinpath("File Paths.txt").exists():
+            #Create the directory for the pack to be created into
+            pack_path = main_path.joinpath(EaO_path.parts[-1])
+            pack_path.mkdir(parents=True, exist_ok=True)
 
+        ret = {"Main":main_path,
+               "Data":data_path,
+               "Comm Site":comm_path,
+               "Customer":EaO_path,
+               "Tech Area":TA_path,
+               "Pack":pack_path}
         if pack_path.joinpath("File Paths.txt").exists():
             with open(pack_path.joinpath("File Paths.txt"), "r") as file:
                 path_dict = json.load(file)
-            ret = {}
             for key in path_dict:
                 if path_dict[key] == None:
                     val = None
@@ -84,14 +91,7 @@ def get_paths(cust_num):
                 else:
                     val = path_dict[key]
                 ret[key] = val
-            return ret
-
-        return {"Main":main_path,
-                "Data":data_path,
-                "Comm Site":comm_path,
-                "Customer":EaO_path,
-                "Tech Area":TA_path,
-                "Pack":pack_path}
+        return ret
     else:
         return None
 
@@ -149,3 +149,4 @@ def archive(path, paths):
         i+=1
         name = paths["Archive"].joinpath(path.with_suffix("").parts[-1]+"("+str(i)+")"+path.suffix)
     shutil.move(path, name)
+    return name

@@ -8,6 +8,7 @@ The Handover Pack class for the compilation assiter
 """
 import backend
 import traceback
+import shutil
 import find
 import json
 import ui
@@ -41,6 +42,8 @@ class Handover_Pack():
             if self.paths != None:
                 print()
                 break
+            else:
+                return None
         self.__init_file_structure__()
         self.__init_values__()
         self.required = {}
@@ -68,7 +71,7 @@ class Handover_Pack():
         self.structure = {1:[1.1],
                           2:[2.1],
                           3:[3.1, 3.2, 3.3, 3.4, 3.41, 3.5, 3.6],
-                          4:[4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7],
+                          4:[4.1, 4.2, 4.3, 4.4, 4.5, 4.6],
                           5:[5.1, 5.2],
                           6:[6.1, 6.2],
                           7:[7.1]}
@@ -169,11 +172,69 @@ class Handover_Pack():
         with open(self.paths["Pack"].joinpath("Pack Values.txt"), "w") as file:
             json.dump(val_dict, file, indent=3, sort_keys=True)
 
+        with open(self.paths["Main"].joinpath("Pending files.txt"), "w") as file:
+            try:
+                pending = json.load(file)
+            except:
+                pending = {}
+            if None in self.required:
+                self.required.pop(self.paths["Customer"].parts[-1], None)
+            else:
+                pending[self.paths["Customer"].parts[-1]] = self.required
+            json.dump(pending, file, indent=3, sort_keys=True)
+
+    def end_of_run_transfer(self):
+        if not self.paths["Customer"] in self.paths["Pack"].parents:
+            new_pack_path = backend.open_folder_n(self.paths["Customer"], 11)
+            for path in new_pack_path.iterdir():
+                arc_path = backend.archive(path, self.paths)
+                for key in self.paths:
+                    if type(self.paths[key]) == list:
+                        self.paths[key] = [x if x != path else arc_path for x in self.paths[key]]
+                    else:
+                        if self.paths[key] == path:
+                            self.paths[key] = arc_path
+            for path in self.paths["Pack"].iterdir():
+                shutil.move(path, new_pack_path.joinpath(path.parts[-1]))
+            for key in self.paths:
+                if type(self.paths[key]) == type(Path()):
+                    for gen, parent in enumerate(self.paths[key].parents):
+                        if parent == self.paths["Pack"]:
+                            break
+                    else:
+                        continue
+                    gen = -gen-1
+                    new_path = new_pack_path
+                    while gen < 0:
+                        new_path = new_path.joinpath(self.paths[key].parts[gen])
+                        gen += 1
+                    self.paths[key] = new_path
+                elif type(self.paths[key]) == list:
+                    lst = []
+                    for p in self.paths[key]:
+                        for gen, parent in enumerate(p.parents):
+                            if parent == self.paths["Pack"]:
+                                break
+                        else:
+                            continue
+                        gen = -gen-1
+                        new_path = new_pack_path
+                        while gen < 0:
+                            new_path = new_path.joinpath(p.parts[gen])
+                            gen += 1
+                        lst.append(new_path)
+                    self.paths[key] = lst
+            os.rmdir(self.paths["Pack"])
+            self.paths["Pack"] = new_pack_path
+
+
     def run(self):
-        for x in range(1, 8):
-            if not self.checklist[x]:
-                exec("self.section_{}()".format(x))
-        self.end_of_run_dump()
+        if self.paths:
+            for x in range(1, 8):
+                if not self.checklist[x]:
+                    exec("self.section_{}()".format(x))
+            self.end_of_run_transfer()
+            self.end_of_run_dump()
 
     def section_1(self):
         try:
