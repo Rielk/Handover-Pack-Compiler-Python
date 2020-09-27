@@ -114,7 +114,7 @@ def Serial_Numbers(paths, values):
                 if inp == "None":
                     if len(lst) == 0:
                         print("\nContinuing without Serial Numbers")
-                        values["Serial Numbers"] == False
+                        values["Serial Numbers"] = False
                         print()
                         return values
                     else:

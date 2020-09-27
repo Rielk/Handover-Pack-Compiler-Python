@@ -30,14 +30,17 @@ class Handover_Pack():
                 self.cust_num = cust_num
             else:
                 self.cust_num = input("Customer Number: ").strip(" ")
-            if len(self.cust_num) < 4:
+            if len(self.cust_num) < 4 and self.cust_num != "":
                 print("The Customer number starts with a 4 digits integer. {} is invalid".format(self.cust_num))
                 continue
             try:
                 int(self.cust_num[:4])
             except ValueError:
-                print("The Customer number starts with a 4 digit integer. {} is invalid".format(self.cust_num[:4]))
-                continue
+                if self.cust_num != "":
+                    print("The Customer number starts with a 4 digit integer. {} is invalid".format(self.cust_num[:4]))
+                    continue
+                else:
+                    self.paths = {"Main":Path.cwd()}
             self.paths = backend.get_paths(self.cust_num)
             if self.paths != None:
                 print()
@@ -411,7 +414,7 @@ class Handover_Pack():
                 else:
                     for key in checklist:
                         if not checklist[key]:
-                            self._require(2, "Missing value for \"{}\"".format(key))
+                            self._require(2, "Missing value for '{}'".format(key))
         except:
             print("Error caught in completion of section 2. See RunErrors for details.\n")
             self.errors[2] = traceback.format_exc()
@@ -635,7 +638,9 @@ class Handover_Pack():
                         self.checklist[7.1] = True
                     else:
                         self._require(7, "Missing MCS Certificate.")
-                if self.values["System Size"]>50 or self.paths["MCS Certificate"]==False:
+                else:
+                    self.paths["MCS Certificate"]=False
+                if self.paths["MCS Certificate"]==False:
                     os.rmdir(self.paths["7"])
                     self.checklist[7.1] = True
         except:
