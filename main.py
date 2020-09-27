@@ -11,7 +11,7 @@ import json
 
 hp = Handover_Pack()
 if hp.cust_num == "":
-    with open(hp.paths["Main"].joinpath("Pending files.txt"), "r") as file:
+    with open(hp.paths["Data"].parent.joinpath("Pending files.txt"), "r") as file:
         try:
             pending = json.load(file)
         except:

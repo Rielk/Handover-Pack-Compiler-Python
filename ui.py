@@ -9,6 +9,7 @@ Deals with user interface for the compilation assiter
 import os
 import backend
 from pathlib import Path
+from tkinter import simpledialog, filedialog
 
 def request_comm_site_path(comm_path=None):
     """"

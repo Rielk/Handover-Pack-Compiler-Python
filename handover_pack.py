@@ -40,7 +40,7 @@ class Handover_Pack():
                     print("The Customer number starts with a 4 digit integer. {} is invalid".format(self.cust_num[:4]))
                     continue
                 else:
-                    self.paths = {"Main":Path.cwd()}
+                    self.paths = {"Data":Path.cwd().joinpath("Data")}
             self.paths = backend.get_paths(self.cust_num)
             if self.paths != None:
                 print()
@@ -175,7 +175,7 @@ class Handover_Pack():
         with open(self.paths["Pack"].joinpath("Pack Values.txt"), "w") as file:
             json.dump(val_dict, file, indent=3, sort_keys=True)
 
-        with open(self.paths["Main"].joinpath("Pending files.txt"), "w") as file:
+        with open(self.paths["Data"].joinpath("Pending files.txt"), "w") as file:
             try:
                 pending = json.load(file)
             except:
