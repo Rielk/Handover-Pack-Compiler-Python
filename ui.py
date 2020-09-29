@@ -19,7 +19,7 @@ def request_comm_site_path(comm_path=None):
     if comm_path==None:
         comm_path = Path(input("Unable to find the file directory for the Communication site. Please input the path to the file directory containing the 'Enquiries & Orders' and 'Technical Area' folders:\n"))
     if comm_path.exists():
-        if comm_path.joinpath("Enquiries & Orders").exists():
+        if comm_path.joinpath("Enquiries & Orders Area").exists():
             if comm_path.joinpath("Technical Area").exists():
                 return comm_path
             else:
